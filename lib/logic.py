@@ -101,10 +101,11 @@ class Application:
         """
         rep = data.copy()
         vec = (
-            data['coords']['time'], data['coords']['lat'], data['coords']['lon'], data['coords']['height'], data['coords']['hdop'],
+            float(data['coords']['time']), data['coords']['lat'], data['coords']['lon'], data['coords']['height'], data['coords']['hdop'],
             data['acceleration'][0], data['acceleration'][1], data['acceleration'][2],
             data['roll'], data['pitch']
         )
+        vec = tuple([0. if x is None else x for x in vec])
         rep['data'] = vec
         rep['payload'] = struct.pack("%uf" % len(vec), *vec)
         print("LORA-DATA [{}]: {}".format(len(rep['payload']), rep))
@@ -114,12 +115,12 @@ class Application:
         """
         Emit a measure through LoRaWAN
         """
-        try:
-            m = self.measure()
-            rep = self.encode(m)
-            ack = self.send(rep['payload'])
-        except:
-            pass
+        #try:
+        m = self.measure()
+        rep = self.encode(m)
+        ack = self.send(rep['payload'])
+        #except:
+        #    pass
 
     def start(self, measure_period=1, lora_period=20, mode='eco', dryrun=False, debug=False, show=True, color=0x007f00):
         """
