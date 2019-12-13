@@ -199,7 +199,7 @@ class L76GNSS:
                 data['result'] = None
             return data
 
-    def read(self, timeout=1., debug=False, show=True, targets=None, mode='any'):
+    def read(self, timeout=1., debug=False, show=True, targets=None, mode='all'):
         """
         Read data from L76 chipset and parse NMEA protocol
         """
@@ -218,6 +218,7 @@ class L76GNSS:
         self._watchdog.start()
 
         # L76 read loop w/ timeout:
+        i = 0
         self._set_buffer()
         while (timeout is None) or (self._watchdog.read() <= timeout):
 
@@ -232,23 +233,23 @@ class L76GNSS:
             line = b''
             self._buffer.seek(0)
             for line in self._buffer:
-
+                i += 1                
                 # Parse Line:
                 try:
                     res = self.parse(line)
 
                 except Exception as err:
-                    print("ERROR: {}({})".format(err, line))
+                    print("ERROR [{}]: {}({})".format(i, err, line))
 
                 else:
                     # Line is a valid NMEA sentence:
                     if res:
 
                         if self.debug or debug:
-                            print("NMEA [{type:},{count:}]: {raw:}".format(count=len(line), **res))
+                            print("NMEA [{},{type:},{count:}]: {raw:}".format(i, count=len(line), **res))
                         
                         if res['result'] and show:
-                            print("GPS-DATA: {}".format(res['result']))
+                            print("GPS-DATA [{}]: {}".format(i, res['result']))
                         
                         # NMEA Sentence has correct check sum:
                         if res['integrity']:
@@ -258,7 +259,7 @@ class L76GNSS:
                             matches.update([res['type']])
 
                         else:
-                            print("CHECKSUM [{checked:X}/{checksum:X}]: {raw:}".format(**res))
+                            print("CHECKSUM [{},{checked:X}/{checksum:X}]: {raw:}".format(i, **res))
 
             # Reset buffer with trailing data:
             self._set_buffer(line)
@@ -270,6 +271,10 @@ class L76GNSS:
             # Break read loop (all mode):
             if (mode == 'all') and matches.issuperset(targets):
                 break
+        
+        # Timeout reason:
+        else:
+            print("TIMEOUT [{}]: {} {} in {}, missing {}".format(self._watchdog.read(), mode, targets, matches, targets.difference(matches)))
 
 
     def start(self, debug=False, show=True):

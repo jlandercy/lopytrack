@@ -13,30 +13,35 @@ pycom.heartbeat(True)
 
 # Setup network & sensors
 if machine.reset_cause() == machine.DEEPSLEEP_RESET:
-    print('POWER-ON [DEEPSLEEP]')
+    print('DEVICE [POWER-ON]: Woke up from deepsleep')
 else:
-    print('POWER-ON [RESET]')
-
-# Node Connection:
-with open('./data/credentials.json') as fh:
-    creds = json.load(fh)["lora"]
+    print('DEVICE [POWER-ON]: Reset')
 
 # Detect device:
 eid = binascii.hexlify(network.LoRa().mac()).decode().upper()
-print("Device [Device-EUI={}] detected".format(eid))
+print("DEVICE [EUI={}] detected".format(eid))
 
-# Read credentials:
+# Node/Application Key:
+target = './data/lora.json'
+try:
+    with open(target) as fh:
+        creds = json.load(fh)
+except OSError:
+    creds = {eid: lora.generate_keys()}
+    print("CREDENTIALS: {}".format(json.dumps(creds)))
+    with open(target, 'w') as fh:
+        json.dump(creds, fh)
 keys = creds.get(eid)
-sock = None
 
 # Create Socket:
-#if keys:
-#    sock = lora.connect(**keys)
-print("Socket: {}".format(sock))
+sock = None
+if keys:
+    sock = lora.connect(**keys)
+print("SOCKET: {}".format(sock))
 
 # Stop to blink:
 pycom.heartbeat(False)
 
 # Create and start application:
 app = logic.Application(sock=sock)
-app.start(dryrun=True, debug=False, mode='power')
+app.start(dryrun=True, debug=False, show=True, mode='power')

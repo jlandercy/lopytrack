@@ -7,25 +7,19 @@ from network import LoRa
 import ubinascii
 
 
-def generate_keys(show=False):
+def generate_keys():
     """"
     Generate random Application EUI and Key:
     """
     appeui = ubinascii.hexlify(os.urandom(8)).decode().upper()
     appkey = ubinascii.hexlify(os.urandom(16)).decode().upper()
-    if show:
-        print("App-EUI=".format(appeui))
-        print("App-Key=".format(appkey))
-    return (appeui, appkey)
+    print("LORA [EUI={}]: Application keys generated".format(appeui))
+    return {"appeui": appeui, "appkey": appkey}
 
-def connect(appeui=None, appkey=None):
+def connect(appeui, appkey):
     """
-    Create anc connect Socket for LoRa technology using OTAA mechanism
+    Create and connect Socket for LoRa application using OTAA mechanism
     """
-
-    if appeui is None:
-        appeui, appkey = generate_keys()
-        print("Generated [App-EUI={}]".format(appeui))
 
     # Initialise LoRa in LORAWAN mode.
     lora = LoRa(mode=LoRa.LORAWAN, region=LoRa.EU868)
@@ -39,10 +33,10 @@ def connect(appeui=None, appkey=None):
     
     # wait until the module has joined the network
     while not lora.has_joined():
-        time.sleep(2.5)
-        print('Join [App-EUI={}] pending...'.format(appeui))
+        time.sleep(1.0)
+        print('LORA/OTAA [EUI={}]: Application Join request pending...'.format(appeui))
 
-    print('Joined [App-EUI={}]'.format(appeui))
+    print('LORA/OTAA [EUI={}]: Application Join request accepted'.format(appeui))
     
     # Save configuration:
     #lora.nvram_save()

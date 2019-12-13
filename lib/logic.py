@@ -38,7 +38,7 @@ class Application:
         self._id = 0
         self._last = None
 
-        print("Application initialiazed")
+        print("APPLICATION: Initialiazed")
 
     @property
     def board(self):
@@ -56,7 +56,7 @@ class Application:
     def sock(self):
         return self._sock
 
-    def measure(self, debug=False):
+    def measure(self, debug=False, show=False):
         """
         Measure available data on the board.
         """
@@ -66,17 +66,19 @@ class Application:
         data['id'] = self._id
         self._id += 1
         
-        # Read Sensors:
-        
-        self.gps.read(timeout=5.0, targets=['GPGGA', 'GPVTG'])
-        data['coords'] = self.gps.coords()
-        data['speed'] = self.gps.speed()
+        # Read GPS (heavy duty cycle):
+        self.gps.read(timeout=5.0, targets=['GPGGA', 'GPVTG'], debug=debug)
+        data['coords'] = self.gps.coords(debug=debug)
+        data['speed'] = self.gps.speed(debug=debug)
 
-        # data['acceleration'] = self.acc.acceleration()
-        # data['roll'] = self.acc.roll()
-        # data['pitch'] = self.acc.pitch()
+        # Read Sensor (quicker):
+        data['acceleration'] = self.acc.acceleration()
+        data['roll'] = self.acc.roll()
+        data['pitch'] = self.acc.pitch()
 
-        print("Measure [{}]: {}".format(data['id'], data))
+        if show:
+            print("MEASURES [{}]: {}".format(data['id'], data))
+
         return data
 
     def send(self, payload):
@@ -108,31 +110,35 @@ class Application:
         print("Data Encoded: {}".format(rep))
         return rep
 
-    def start(self, measure_period=1, lora_period=20, mode='eco', dryrun=False, debug=False, color=0x007f00):
+    def start(self, measure_period=1, lora_period=20, mode='eco', dryrun=False, debug=False, show=True, color=0x007f00):
         """
         Start application, mainly sample measures, aggregate and send through LoRa
         """
 
         assert mode in ('eco', 'power')
-        
+        print("APPLICATION [{}]: Started".format(mode))
+
+        # Mode Eco, measure, send data and go to deepsleep
         if mode == 'eco':
-            self.measure(debug=debug)
+
+            self.measure(debug=False, show=False)
             machine.deepsleep(1000*lora_period)
 
+        # Mode power
         if mode == 'power':
+
             self._measure_clock.reset()
             self._measure_clock.start()
 
             self._lora_clock.reset()
             self._lora_clock.start()
 
+            # Application Loop
             while True:
-
-                #print(self._lora_clock.read(), self._measure_clock.read())
 
                 # Measure:
                 if self._measure_clock.read() >= measure_period:
-                    self.measure(debug=debug)
+                    self.measure(debug=debug, show=show)
                     self._measure_clock.reset()
 
                 if self._lora_clock.read() >= lora_period:
