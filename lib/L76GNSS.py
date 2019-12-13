@@ -267,7 +267,10 @@ class L76GNSS:
                     "mode": mode
                 }
         fields = payload.split(",")[1:]
-        sats = list(filter(None, [_sat(fields[i*4+3:(i+1)*4+3]) for i in range(4)]))
+        n = (len(fields) - 3) // 4
+        # $GLGSV,1,1,00,1*78 (if no satellites, it sends a 0 or 1 after number of satellites)
+        #assert (len(fields) - 3) % 4 == 0
+        sats = list(filter(None, [_sat(fields[i*4+3:(i+1)*4+3]) for i in range(n)]))
         result = {
             "count": self._safe_int(fields[2]),
             "satelites": sats
@@ -368,6 +371,7 @@ class L76GNSS:
             for line in self._buffer:
                 i += 1                
                 # Parse Line:
+                res = self.parse(line)
                 try:
                     res = self.parse(line)
 
