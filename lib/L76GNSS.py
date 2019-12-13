@@ -324,9 +324,7 @@ class L76GNSS:
             # Parse payload:
             try:
                 key = "_{}".format(data['type'])
-                print(key)
                 parser = getattr(self, key)
-                print(parser)
                 data['result'] = parser(data['payload'])
 
             except (KeyError, AttributeError):

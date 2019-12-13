@@ -140,6 +140,7 @@ class Application:
                 if self._measure_clock.read() >= measure_period:
                     self.measure(debug=debug, show=show)
                     self._measure_clock.reset()
+                    print(self.gps._satellites)
 
                 if self._lora_clock.read() >= lora_period:
 
