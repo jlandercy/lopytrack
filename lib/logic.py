@@ -89,9 +89,10 @@ class Application:
             print("ERROR: Cannot send, no socket defined")
         else:
             n = self.sock.send(payload)
-            print("Sent Frame [{}]: {}".format(n, payload))
+            print("SENT [{}]: {}".format(n, payload))
             ack = self.sock.recv(64)
-            print("Ack [{}]: {}".format(len(ack), ack))
+            print("ACK [{}]: {}".format(len(ack), ack))
+            return ack
 
     @staticmethod
     def encode(data):
@@ -100,15 +101,22 @@ class Application:
         """
         rep = data.copy()
         vec = (
-            data['coords'][0], data['coords'][1],
+            data['coords']['time'], data['coords']['lat'], data['coords']['lon'], data['coords']['height'], data['coords']['hdop'],
             data['acceleration'][0], data['acceleration'][1], data['acceleration'][2],
-            data['roll'], data['pitch'],
-            float(data.get('count', 'nan')), float(data.get('missed', 'nan'))
+            data['roll'], data['pitch']
         )
         rep['data'] = vec
         rep['payload'] = struct.pack("%uf" % len(vec), *vec)
-        print("Data Encoded: {}".format(rep))
+        print("LORA-DATA [{}]: {}".format(len(rep['payload']), rep))
         return rep
+
+    def emit(self):
+        """
+        Emit a measure through LoRaWAN
+        """
+        m = self.measure()
+        rep = self.encode(m)
+        ack = self.send(rep['payload'])
 
     def start(self, measure_period=1, lora_period=20, mode='eco', dryrun=False, debug=False, show=True, color=0x007f00):
         """
@@ -121,7 +129,8 @@ class Application:
         # Mode Eco, measure, send data and go to deepsleep
         if mode == 'eco':
 
-            self.measure(debug=False, show=False)
+            #self.measure(debug=False, show=False)
+            self.emit()
             machine.deepsleep(1000*lora_period)
 
         # Mode power
@@ -138,15 +147,17 @@ class Application:
 
                 # Measure:
                 if self._measure_clock.read() >= measure_period:
+
                     self.measure(debug=debug, show=show)
                     self._measure_clock.reset()
-                    print(self.gps._satellites)
 
                 if self._lora_clock.read() >= lora_period:
 
                     # Blink (light on):
                     pycom.rgbled(color)
                     
+                    self.emit()
+
                     self._lora_clock.reset()
 
                     # Blink (light off):
