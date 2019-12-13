@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import json
 import binascii
 
@@ -13,9 +15,9 @@ pycom.heartbeat(True)
 
 # Setup network & sensors
 if machine.reset_cause() == machine.DEEPSLEEP_RESET:
-    print('DEVICE [POWER-ON]: Woke up from deepsleep')
+    print('DEVICE [POWER]: Woke up from deepsleep')
 else:
-    print('DEVICE [POWER-ON]: Reset')
+    print('DEVICE [POWER]: Started after reset')
 
 # Detect device:
 eid = binascii.hexlify(network.LoRa().mac()).decode().upper()
