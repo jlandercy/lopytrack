@@ -26,9 +26,10 @@ class L76GNSS:
        - https://www.quectel.com/UploadImage/Downlad/L76_GNSS_Protocol_Specification_V1.3.pdf
 
     NMEA Sentences:
-       - Usual received sentences: {'GLGSV', 'GNGSA', 'GPVTG', 'GNGLL', 'GPGSV', 'GPGGA'}
+       - Usual received sentences: {'GNRMC', 'GLGSV', 'GNGSA', 'GPVTG', 'GNGLL', 'GPGSV', 'GPGGA'}
        - https://www.gpsinformation.org/dale/nmea.htm
        - https://en.wikipedia.org/wiki/NMEA_0183
+       - http://navspark.mybigcommerce.com/content/NMEA_Format_v0.1.pdf
        - http://aprs.gids.nl/nmea/
     """
 
@@ -104,12 +105,21 @@ class L76GNSS:
             checksum ^= s
         return checksum
 
-    def _safefloat(self, s):
+    def _safe_float(self, s):
         """
         Safely create float:
         """
         try:
             return float(s)
+        except:
+            return None
+
+    def _safe_int(self, s):
+        """
+        Safely create int:
+        """
+        try:
+            return int(s)
         except:
             return None
 
@@ -149,9 +159,9 @@ class L76GNSS:
             "lon": self.convert_coords(*fields[3:5]),
             "fix": int(fields[5]),
             "sat": int(fields[6]),
-            "hdop": self._safefloat(fields[7]),
-            "height": self._safefloat(fields[8]),
-            "hog": self._safefloat(fields[10]),
+            "hdop": self._safe_float(fields[7]),
+            "height": self._safe_float(fields[8]),
+            "hog": self._safe_float(fields[10]),
             "units": fields[9]
         }
         return result
@@ -172,13 +182,11 @@ class L76GNSS:
         """
         fields = payload.split(",")[1:]
         result = {
-            "track": self._safefloat(fields[0]),
-            "magnetic": self._safefloat(fields[2]),
-            "speed": self._safefloat(fields[6])
+            "track": self._safe_float(fields[0]),
+            "magnetic": self._safe_float(fields[2]),
+            "speed": self._safe_float(fields[6])
         }
         return result
-
-    # {'GLGSV', 'GNGSA', 'GPVTG', 'GNGLL', 'GPGSV', 'GPGGA'}
 
     def _GLGSV(self, payload):
         """
@@ -191,7 +199,21 @@ class L76GNSS:
 
     def _GNGSA(self, payload):
         """
-        Decode NMEA GNGSA Type ()
+        Decode NMEA GNGSA Type (GPS Dilution Of Precision and active satellites)
+
+        $GPGSA,A,3,04,05,,09,12,,,24,,,,,2.5,1.3,2.1*39
+
+        Where:
+                    GSA      Satellite status
+            0)      A        Auto selection of 2D or 3D fix (M = manual) 
+            1)      3        3D fix - values include: 1 = no fix
+                                                      2 = 2D fix
+                                                      3 = 3D fix
+            2-13)   04,05... PRNs of satellites used for fix (space for 12) 
+            14)     2.5      PDOP (dilution of precision) 
+            15)     1.3      Horizontal dilution of precision (HDOP) 
+            16)     2.1      Vertical dilution of precision (VDOP)
+            CS      *39      the checksum data, always begins with *
         """
         fields = payload.split(",")[1:]
         result = {
@@ -200,14 +222,24 @@ class L76GNSS:
 
     def _GNGLL(self, payload):
         """
-        Decode NMEA GNGLL Type ()
+        Decode NMEA GNGLL Type (Geographic Latitude and Longitude)
+
+        $GPGLL,4916.45,N,12311.12,W,225444,A,*1D
+
+        Where:
+                    GLL          Geographic position, Latitude and Longitude
+            0-1)    4916.46,N    Latitude 49 deg. 16.45 min. North
+            2-3)    12311.12,W   Longitude 123 deg. 11.12 min. West
+            4)      225444       Fix taken at 22:54:44 UTC
+            5)      A            Data Active or V (void)
+            CS      *iD          checksum data
         """
         fields = payload.split(",")[1:]
         result = {
         }
         return result
 
-    def _GPGSV(self, payload):
+    def _GPGSV(self, payload, mode='GPGSV'):
         """
         Decode NMEA GPGSV Type (Detailed data on Satelites)
 
@@ -225,12 +257,32 @@ class L76GNSS:
             x)   +4x3          for up to 4 satellites per sentence
             CS    *75          the checksum data, always begins with *
         """
+        def _sat(seq):
+            if seq[0]:
+                return {
+                    "PRN": seq[0],
+                    "elevation": self._safe_float(seq[1]),
+                    "azimuth": self._safe_float(seq[2]),
+                    "SNR": self._safe_float(seq[3]),
+                    "mode": mode
+                }
         fields = payload.split(",")[1:]
+        sats = list(filter(None, [_sat(fields[i*4+3:(i+1)*4+3]) for i in range(4)]))
         result = {
+            "count": self._safe_int(fields[2]),
+            "satelites": sats
         }
+        self._satellites.update({sat['PRN']: sat for sat in sats})
         return result
 
-    def _GPGSV(self, payload):
+
+    def _GLGSV(self, payload):
+        """
+        Decode NMEA GLGSV Type (Synonym for GPGSV)
+        """
+        return self._GPGSV(payload, mode='GLGSV')
+
+    def _GPRMC(self, payload):
         """
         Decode NMEA GPVTG Type (Essential GPS pvt position, velocity, time data)
 
@@ -272,7 +324,9 @@ class L76GNSS:
             # Parse payload:
             try:
                 key = "_{}".format(data['type'])
+                print(key)
                 parser = getattr(self, key)
+                print(parser)
                 data['result'] = parser(data['payload'])
 
             except (KeyError, AttributeError):
