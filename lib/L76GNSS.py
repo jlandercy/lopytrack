@@ -50,19 +50,20 @@ class L76GNSS:
         # Options:
         self.debug = debug
 
-        # Buffer:
+        # GPS Storage:
         self._set_buffer()
-        self._last = dict()
-        self._fix = None
-
+        #self._lastfix = None
+        self._lastframes = dict()
+        self._satellites = dict()
+        
         # NMEA Regular Expression:
         self._NMEA = ure.compile(b"\$(G....)(.*)\*([0-9A-F]*)\r")
 
         # Time Management:
         self._watchdog = Timer.Chrono()
         self._fixtime = Timer.Chrono()
-        self._fixtime.reset()
-        self._fixtime.start()
+        #self._fixtime.reset()
+        #self._fixtime.start()
 
         # L76 Initialization:
         self.reg = bytearray(1)
@@ -177,12 +178,89 @@ class L76GNSS:
         }
         return result
 
+    # {'GLGSV', 'GNGSA', 'GPVTG', 'GNGLL', 'GPGSV', 'GPGGA'}
+
+    def _GLGSV(self, payload):
+        """
+        Decode NMEA GLGSV Type ()
+        """
+        fields = payload.split(",")[1:]
+        result = {
+        }
+        return result
+
+    def _GNGSA(self, payload):
+        """
+        Decode NMEA GNGSA Type ()
+        """
+        fields = payload.split(",")[1:]
+        result = {
+        }
+        return result
+
+    def _GNGLL(self, payload):
+        """
+        Decode NMEA GNGLL Type ()
+        """
+        fields = payload.split(",")[1:]
+        result = {
+        }
+        return result
+
+    def _GPGSV(self, payload):
+        """
+        Decode NMEA GPGSV Type (Detailed data on Satelites)
+
+        $GPGSV,2,1,08, 01,40,083,46, 02,17,308,41, 12,07,344,39, 14,22,228,45 *75
+
+        Where:
+                GSV          Satellites in view
+            0)    2            Number of sentences for full data
+            1)    1            sentence 1 of 2
+            2)    08           Number of satellites in view
+            3)    01           Satellite PRN number
+            4)    40           Elevation, degrees
+            5)    083          Azimuth, degrees
+            6)    46           SNR - higher is better
+            x)   +4x3          for up to 4 satellites per sentence
+            CS    *75          the checksum data, always begins with *
+        """
+        fields = payload.split(",")[1:]
+        result = {
+        }
+        return result
+
+    def _GPGSV(self, payload):
+        """
+        Decode NMEA GPVTG Type (Essential GPS pvt position, velocity, time data)
+
+        $GPRMC,123519,A,4807.038,N,01131.000,E,022.4,084.4,230394,003.1,W*6A
+
+        Where:
+                    RMC          Recommended Minimum sentence C
+            0)      123519       Fix taken at 12:35:19 UTC
+            1)      A            Status A=active or V=Void.
+            2-3)    4807.038,N   Latitude 48 deg 07.038' N
+            4-5)    01131.000,E  Longitude 11 deg 31.000' E
+            6)      022.4        Speed over the ground in knots
+            7)      084.4        Track angle in degrees True
+            8)      230394       Date - 23rd of March 1994
+            9-10)   003.1,W      Magnetic Variation
+            CS      *6A          The checksum data, always begins with *
+        """
+        fields = payload.split(",")[1:]
+        result = {
+        }
+        return result
+
     def parse(self, sentence):
         """
         Parse NMEA Sentence
         """
         m = self._NMEA.match(sentence)
         if m:
+
+            # Map frame & perform checksum:
             data = dict()
             data['raw'] = m.group(0)
             data['type'] = m.group(1).decode()
@@ -190,13 +268,16 @@ class L76GNSS:
             data['checksum'] = int(m.group(3).decode(), 16)
             data['checked'] = self.checksum(m.group(0).split(b'*')[0].replace(b'$', b''))
             data['integrity'] = (data['checksum'] == data['checked'])
+
             # Parse payload:
             try:
                 key = "_{}".format(data['type'])
                 parser = getattr(self, key)
                 data['result'] = parser(data['payload'])
+
             except (KeyError, AttributeError):
                 data['result'] = None
+
             return data
 
     def read(self, timeout=1., debug=False, show=True, targets=None, mode='all'):
@@ -255,7 +336,7 @@ class L76GNSS:
                         if res['integrity']:
 
                             # Store Results:
-                            self._last[res['type']] = res
+                            self._lastframes[res['type']] = res
                             matches.update([res['type']])
 
                         else:
@@ -287,14 +368,14 @@ class L76GNSS:
         """
         Read coordinates from L76
         """
-        if refresh or self._last.get('GPGGA', {}).get('result') is None:
+        if refresh or self._lastframes.get('GPGGA', {}).get('result') is None:
             self.read(timeout=timeout, debug=debug, targets=['GPGGA'])
-        return self._last.get('GPGGA', {}).get('result')
+        return self._lastframes.get('GPGGA', {}).get('result')
 
     def speed(self, timeout=1., debug=False, refresh=False):
         """
         Read speed from L76
         """
-        if refresh or self._last.get('GPVTG', {}).get('result') is None:
+        if refresh or self._lastframes.get('GPVTG', {}).get('result') is None:
             self.read(timeout=timeout, debug=debug, targets=['GPVTG'])
-        return self._last.get('GPVTG', {}).get('result')
+        return self._lastframes.get('GPVTG', {}).get('result')
