@@ -128,7 +128,7 @@ class Application:
 
             while True:
 
-                print(self._lora_clock.read(), self._measure_clock.read())
+                #print(self._lora_clock.read(), self._measure_clock.read())
 
                 # Measure:
                 if self._measure_clock.read() >= measure_period:

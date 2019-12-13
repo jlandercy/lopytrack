@@ -18,8 +18,8 @@ else:
     print('POWER-ON [RESET]')
 
 # Node Connection:
-with open('./data/nodes.json') as fh:
-    creds = json.load(fh)
+with open('./data/credentials.json') as fh:
+    creds = json.load(fh)["lora"]
 
 # Detect device:
 eid = binascii.hexlify(network.LoRa().mac()).decode().upper()
