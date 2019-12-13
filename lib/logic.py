@@ -56,7 +56,7 @@ class Application:
     def sock(self):
         return self._sock
 
-    def measure(self, debug=False, show=False):
+    def measure(self, timeout=5.0, debug=False, show=False):
         """
         Measure available data on the board.
         """
@@ -67,7 +67,7 @@ class Application:
         self._id += 1
         
         # Read GPS (heavy duty cycle):
-        self.gps.read(timeout=5.0, targets=['GPGGA', 'GPVTG'], debug=debug)
+        self.gps.read(timeout=timeout, targets=['GPGGA', 'GPVTG'], debug=debug)
         data['coords'] = self.gps.coords(debug=debug)
         data['speed'] = self.gps.speed(debug=debug)
 
@@ -110,13 +110,16 @@ class Application:
         print("LORA-DATA [{}]: {}".format(len(rep['payload']), rep))
         return rep
 
-    def emit(self):
+    def emit(self, timeout=5.0):
         """
         Emit a measure through LoRaWAN
         """
-        m = self.measure()
-        rep = self.encode(m)
-        ack = self.send(rep['payload'])
+        try:
+            m = self.measure()
+            rep = self.encode(m)
+            ack = self.send(rep['payload'])
+        except:
+            pass
 
     def start(self, measure_period=1, lora_period=20, mode='eco', dryrun=False, debug=False, show=True, color=0x007f00):
         """
@@ -130,7 +133,7 @@ class Application:
         if mode == 'eco':
 
             #self.measure(debug=False, show=False)
-            self.emit()
+            self.emit(timeout=30.0)
             machine.deepsleep(1000*lora_period)
 
         # Mode power
