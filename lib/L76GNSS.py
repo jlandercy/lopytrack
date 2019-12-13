@@ -268,7 +268,9 @@ class L76GNSS:
                 }
         fields = payload.split(",")[1:]
         n = (len(fields) - 3) // 4
-        # $GLGSV,1,1,00,1*78 (if no satellites, it sends a 0 or 1 after number of satellites)
+        # If no satellites, it sends a 0 or 1 after number of satellites:
+        # $GLGSV,1,1,00,1*78 
+        # $GPGSV,1,1,00,0*65
         #assert (len(fields) - 3) % 4 == 0
         sats = list(filter(None, [_sat(fields[i*4+3:(i+1)*4+3]) for i in range(n)]))
         result = {
