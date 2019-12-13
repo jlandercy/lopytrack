@@ -3,6 +3,5 @@
 
 import pycom
 
-print("DEVICE [BOOT]: WiFi [{}]".format(pycom.wifi_on_boot()))
 pycom.wifi_on_boot(False)
-print("DEVICE [BOOT]: WiFi [{}]".format(pycom.wifi_on_boot()))
+print("DEVICE [BOOT]: WiFi on Boot set to {}".format(pycom.wifi_on_boot()))

@@ -116,7 +116,7 @@ class Application:
         """
 
         assert mode in ('eco', 'power')
-        print("APPLICATION [{}]: Started".format(mode))
+        print("APPLICATION: Started in mode '{}'".format(mode))
 
         # Mode Eco, measure, send data and go to deepsleep
         if mode == 'eco':

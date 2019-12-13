@@ -17,11 +17,11 @@ pycom.heartbeat(True)
 if machine.reset_cause() == machine.DEEPSLEEP_RESET:
     print('DEVICE [POWER]: Woke up from deepsleep')
 else:
-    print('DEVICE [POWER]: Started after reset')
+    print('DEVICE [POWER]: Started after a reset')
 
 # Detect device:
 eid = binascii.hexlify(network.LoRa().mac()).decode().upper()
-print("DEVICE [EUI={}] detected".format(eid))
+print("DEVICE [EUI={}]: EUI detected".format(eid))
 
 # Node/Application Key:
 target = './data/lora.json'
