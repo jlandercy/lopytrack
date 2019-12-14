@@ -100,6 +100,7 @@ class Application:
         Encode data into LoRa physical payload:
         """
         rep = data.copy()
+        # Test payload not compliant with ISM allowed duty cycle:
         vec = (
             float(data['coords']['time']), data['coords']['lat'], data['coords']['lon'], data['coords']['height'], data['coords']['hdop'],
             data['acceleration'][0], data['acceleration'][1], data['acceleration'][2],
@@ -108,6 +109,12 @@ class Application:
         vec = tuple([float('nan') if x is None else x for x in vec])
         rep['data'] = vec
         rep['payload'] = struct.pack("%uf" % len(vec), *vec)
+        """
+        # Minimalist Payload:
+        payload = b''
+        payload += struct.pack("<h", data['coords']['time'])
+        rep['payload'] = payload
+        """
         print("LORA-DATA [{}]: {}".format(len(rep['payload']), rep))
         return rep
 
@@ -166,6 +173,4 @@ class Application:
 
                     # Blink (light off):
                     pycom.rgbled(0x000000)
-
-                
 
