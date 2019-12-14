@@ -53,7 +53,7 @@ class L76GNSS:
 
         # GPS Storage:
         self._set_buffer()
-        #self._lastfix = None
+        self._lastfixon = None
         self._lastframes = dict()
         self._satellites = dict()
         
@@ -62,9 +62,6 @@ class L76GNSS:
 
         # Time Management:
         self._watchdog = Timer.Chrono()
-        self._fixtime = Timer.Chrono()
-        #self._fixtime.reset()
-        #self._fixtime.start()
 
         # L76 Initialization:
         self.reg = bytearray(1)
@@ -337,7 +334,7 @@ class L76GNSS:
 
             return data
 
-    def read(self, timeout=1., debug=False, show=True, targets=None, mode='all'):
+    def read(self, timeout=1., debug=False, show=True, targets=None, mode='all', fix=False):
         """
         Read data from L76 chipset and parse NMEA protocol
         """
@@ -397,30 +394,50 @@ class L76GNSS:
                             self._lastframes[res['type']] = res
                             matches.update([res['type']])
 
+                            # Is it a fix?
+                            if res['type'] in ('GPGGA',) and res['result']['lat'] is not None:
+                                self._lastfixon = res['result']['time']
+
                         else:
                             print("CHECKSUM [{},{checked:X}/{checksum:X}]: {raw:}".format(i, **res))
 
             # Reset buffer with trailing data:
             self._set_buffer(line)
 
+            if fix and ('GPGGA' in matches) and not self._lastframes['GPGGA']['result']['lon'] is None:
+                print("GPS-FIX: {}".format(self._lastframes['GPGGA']['result']))
+                break
+
             # Break read loop (any mode):
-            if mode == 'any' and len(matches.intersection(targets))>0:
+            if not fix and (mode == 'any') and len(matches.intersection(targets))>0:
                 break
             
             # Break read loop (all mode):
-            if (mode == 'all') and matches.issuperset(targets):
+            if not fix and (mode == 'all') and matches.issuperset(targets):
                 break
         
         # Timeout reason:
         else:
             print("TIMEOUT [{}]: {} {} in {}, missing {}".format(self._watchdog.read(), mode, targets, matches, targets.difference(matches)))
 
+    @property
+    def lastfixon(self):
+        return self._lastfixon
 
     def start(self, debug=False, show=True):
         """
         Start GPS in deamon mode (not threadable at the moment)
         """
         self.read(timeout=None, targets=None, debug=debug, show=show)
+
+    def fix(self, debug=False, show=True, timeout=300.0, retry=5):
+        """
+        GPS fix mode
+        """
+        for i in range(retry):
+            self.read(timeout=timeout, targets=['GPGGA'], fix=True, debug=debug, show=show)
+            
+        return self._lastframes['GPGGA']['result']
 
     def coords(self, timeout=1., debug=False, refresh=False):
         """

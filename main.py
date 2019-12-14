@@ -48,4 +48,4 @@ pycom.heartbeat(False)
 
 # Create and start application:
 app = logic.Application(sock=sock, lora=_lora)
-app.start(dryrun=True, lora_period=20, debug=True, show=True, mode='eco')
+app.start(dryrun=True, lora_period=20, debug=True, show=True, mode='power')
