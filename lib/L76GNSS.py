@@ -70,7 +70,13 @@ class L76GNSS:
         self.i2c.writeto(L76GNSS.GPS_I2CADDR, self.reg)
 
         # NMEA Synonym registration:
-        for 
+        oNMEA = [key for key in dir(self) if key.startswith("_GP")]
+        for okey in oNMEA:
+            for ntype in ['N', 'L']:
+                nkey = okey[:2] + ntype + okey[2:]
+                ofunc = getattr(self, okey)
+                setattr(self, nkey, lambda s: ofunc(s))
+                print("NMEA [{}]: Synonym created for {}".format(okey, nkey))
 
     def _read(self, n=64):
         """
@@ -129,7 +135,10 @@ class L76GNSS:
         """
         Convert Time:
         """
-        return (int(s[0:2]), int(s[2:4]), int(s[4:6]), int(s[7:10])*1000)
+        if len(s) == 6:
+            return (int(s[0:2]), int(s[2:4]), int(s[4:6]))
+        else:
+            return (int(s[0:2]), int(s[2:4]), int(s[4:6]), int(s[7:10])*1000)
 
     def _convert_date(self, s):
         """
@@ -168,7 +177,7 @@ class L76GNSS:
         """
         fields = payload.split(",")[1:]
         result = {
-            "time": (int(fields[0][:2])*60 + int(fields[0][2:4]))*60 + int(fields[0][4:6]),
+            "time": self._convert_time(fields[0]),
             "lat": self.convert_coords(*fields[1:3]),
             "lon": self.convert_coords(*fields[3:5]),
             "fix": int(fields[5]),
@@ -202,16 +211,7 @@ class L76GNSS:
         }
         return result
 
-    def _GLGSV(self, payload):
-        """
-        Decode NMEA GLGSV Type ()
-        """
-        fields = payload.split(",")[1:]
-        result = {
-        }
-        return result
-
-    def _GNGSA(self, payload):
+    def _GPGSA(self, payload):
         """
         Decode NMEA GNGSA Type (GPS Dilution Of Precision and active satellites)
 
@@ -234,7 +234,7 @@ class L76GNSS:
         }
         return result
 
-    def _GNGLL(self, payload):
+    def _GPGLL(self, payload):
         """
         Decode NMEA GNGLL Type (Geographic Latitude and Longitude)
 
