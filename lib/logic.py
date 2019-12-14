@@ -112,8 +112,9 @@ class Application:
         """
         rep = data.copy()
         # Test payload not compliant with ISM allowed duty cycle:
+        t = data['coords']['time']
         vec = (
-            float(data['coords']['time']), data['coords']['lat'], data['coords']['lon'], data['coords']['height'], data['coords']['hdop'],
+            float((t[0]*60+t[1])*60+t[2]), data['coords']['lat'], data['coords']['lon'], data['coords']['height'], data['coords']['hdop'],
             data['acceleration'][0], data['acceleration'][1], data['acceleration'][2],
             data['roll'], data['pitch']
         )
@@ -152,14 +153,14 @@ class Application:
         assert mode in ('eco', 'power')
         print("APPLICATION: Started in mode '{}'".format(mode))
 
-        # Fix GPS before continuing
-        self.gps.fix(timeout=5, retry=2)
+        # Fix GPS before continuing:
+        self.gps.fix(timeout=5*2, retry=3)
 
         # Mode Eco, measure, send data and go to deepsleep
         if mode == 'eco':
 
             #self.measure(debug=False, show=False)
-            self.emit(timeout=30.0)
+            self.emit(timeout=5.0)
             utime.sleep(1.)
             machine.deepsleep(1000*lora_period)
 

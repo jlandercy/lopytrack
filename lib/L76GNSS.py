@@ -75,7 +75,8 @@ class L76GNSS:
             for ntype in ['N', 'L']:
                 nkey = okey[:2] + ntype + okey[3:]
                 ofunc = getattr(self, okey)
-                setattr(self, nkey, lambda s: ofunc(s))
+                #setattr(self, nkey, lambda s: ofunc(s)) # Generate a closure error
+                self.__dict__[nkey] = ofunc #self.__dict__[okey] # does not work as function is not yet defined
                 print("NMEA [{}]: Synonym created for {}".format(okey[1:], nkey[1:]))
         print("NMEA: Registred sentences are {}".format([key[1:] for key in dir(self) if key.startswith("_G")]))
 
@@ -319,7 +320,9 @@ class L76GNSS:
             9-10)   003.1,W      Magnetic Variation
             CS      *6A          The checksum data, always begins with *
         """
+        print(payload)
         fields = payload.split(",")[1:]
+        print(fields)
         result = {
             "status": fields[1],
             "lat": self.convert_coords(*fields[2:4]),
@@ -360,7 +363,12 @@ class L76GNSS:
             # Parse payload:
             try:
                 key = "_{}".format(data['type'])
+                print(key)
                 parser = getattr(self, key)
+                print(parser)
+                print(dir(parser))
+                print(parser.__class__)
+                print(dir(parser.__class__))
                 data['result'] = parser(data['payload'])
 
             except (KeyError, AttributeError):
@@ -429,7 +437,7 @@ class L76GNSS:
             for line in self._buffer:
                 i += 1                
                 # Parse Line:
-                #res = self.parse(line)
+                res = self.parse(line)
                 try:
                     res = self.parse(line)
 
@@ -500,7 +508,7 @@ class L76GNSS:
             tlf = utime.maketime(self._to_utime(self._lastfixon))
             return abs(tnow - tlf) < eps
 
-    def fix(self, debug=True, show=True, timeout=300.0, retry=5):
+    def fix(self, debug=False, show=True, timeout=300.0, retry=5):
         """
         Get a GPS fix in a given timeout with retries
         """
