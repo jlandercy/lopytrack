@@ -460,7 +460,7 @@ class L76GNSS:
                             matches.update([res['type']])
 
                             # Is time fixed?
-                            if res['type'] in ('GPRMC', 'GNRMC'):
+                            if res['type'] in ('GPRMC', 'GNRMC') and res['result'] is not None:
                                 self._set_RTC(res['result'])
 
                             # Is position fixed?
@@ -502,8 +502,8 @@ class L76GNSS:
         if self._lastfixon is None:
             return False
         else:
-            tnow = utime.maketime(self._to_utime(self._RTC.now()))
-            tlf = utime.maketime(self._to_utime(self._lastfixon))
+            tnow = utime.mktime(self._to_utime(self._RTC.now()))
+            tlf = utime.mktime(self._to_utime(self._lastfixon))
             return abs(tnow - tlf) < eps
 
     def fix(self, debug=False, show=True, timeout=300.0, retry=5):
