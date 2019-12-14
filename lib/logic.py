@@ -154,13 +154,16 @@ class Application:
         print("APPLICATION: Started in mode '{}'".format(mode))
 
         # Fix GPS before continuing:
-        self.gps.fix(timeout=5*2, retry=3)
+        self.gps.fix(timeout=5*60, retry=3)
 
         # Mode Eco, measure, send data and go to deepsleep
         if mode == 'eco':
 
             #self.measure(debug=False, show=False)
-            self.emit(timeout=5.0)
+            if not dryrun:
+                self.emit(timeout=5.0)
+            
+            # More or less safely shutdown the device:
             utime.sleep(1.)
             machine.deepsleep(1000*lora_period)
 
@@ -187,7 +190,8 @@ class Application:
                     # Blink (light on):
                     pycom.rgbled(color)
                     
-                    self.emit()
+                    if not dryrun:
+                        self.emit()
 
                     self._lora_clock.reset()
 
