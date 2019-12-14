@@ -25,6 +25,7 @@ def connect(appeui, appkey, force=False):
 
     # Initialise LoRa in LORAWAN mode.
     lora = LoRa(mode=LoRa.LORAWAN, region=LoRa.EU868)
+    #lora.nvram_erase()
     lora.nvram_restore()
 
     if not lora.has_joined() or force:
@@ -42,11 +43,6 @@ def connect(appeui, appkey, force=False):
         print('LORA/OTAA [EUI={}]: Application Join request pending...'.format(appeui))
 
     print('LORA/OTAA [EUI={}]: Application Join request accepted'.format(appeui))
-    
-    # Save LoRa State:
-    # https://forum.pycom.io/topic/1668/has-anyone-successfully-used-lora-nvram_save-and-restore/16
-    lora.nvram_save()
-    print('LORA/OTAA [EUI={}]: LoRa state saved'.format(appeui))
 
     # create a LoRa socket
     sock = socket.socket(socket.AF_LORA, socket.SOCK_RAW)
@@ -61,5 +57,10 @@ def connect(appeui, appkey, force=False):
     # make the socket non-blocking
     # (because if there's no data received it will block forever...)
     sock.setblocking(False)
+
+    # Save LoRa State:
+    # https://forum.pycom.io/topic/1668/has-anyone-successfully-used-lora-nvram_save-and-restore/16
+    #lora.nvram_save()
+    print('LORA/OTAA [EUI={}]: LoRa state saved'.format(appeui))
 
     return sock, lora
