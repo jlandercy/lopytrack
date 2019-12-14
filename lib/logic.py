@@ -19,7 +19,7 @@ class Application:
     Pytrack basic application for GPS logging
     """
 
-    def __init__(self, sock=None, board=_py, gps=_gps, acc=_acc):
+    def __init__(self, sock=None, lora=None, board=_py, gps=_gps, acc=_acc):
         """
         Initialiaze application
         """
@@ -29,6 +29,7 @@ class Application:
         self._gps = gps
         self._acc = acc
         self._sock = sock
+        self._lora = lora
 
         # Timers:
         self._measure_clock = machine.Timer.Chrono()
@@ -55,6 +56,10 @@ class Application:
     @property
     def sock(self):
         return self._sock
+
+    @property
+    def lora(self):
+        return self._lora
 
     def measure(self, timeout=5.0, debug=False, show=False):
         """
@@ -92,6 +97,10 @@ class Application:
             print("SENT [{}]: {}".format(n, payload))
             ack = self.sock.recv(64)
             print("ACK [{}]: {}".format(len(ack), ack))
+            # Save LoRa state:
+            utime.sleep(1.)
+            self.lora.nvram_save()
+            utime.sleep(1.)
             return ack
 
     @staticmethod
@@ -111,6 +120,9 @@ class Application:
         rep['payload'] = struct.pack("%uf" % len(vec), *vec)
         """
         # Minimalist Payload:
+        # https://gis.stackexchange.com/questions/8650/measuring-accuracy-of-latitude-and-longitude
+        # len(bin(-180*10000*4))-2 # 24
+        # int(-180*10000)<<24 + int(90*10000) makes the board crash because + takes precedence to <<
         payload = b''
         payload += struct.pack("<h", data['coords']['time'])
         rep['payload'] = payload
@@ -142,6 +154,7 @@ class Application:
 
             #self.measure(debug=False, show=False)
             self.emit(timeout=30.0)
+            utime.sleep(1.)
             machine.deepsleep(1000*lora_period)
 
         # Mode power

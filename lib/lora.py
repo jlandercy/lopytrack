@@ -18,21 +18,24 @@ def generate_keys():
     print("LORA [EUI={}]: Application keys generated".format(appeui))
     return {"appeui": appeui, "appkey": appkey}
 
-def connect(appeui, appkey):
+def connect(appeui, appkey, force=False):
     """
     Create and connect Socket for LoRa application using OTAA mechanism
     """
 
     # Initialise LoRa in LORAWAN mode.
     lora = LoRa(mode=LoRa.LORAWAN, region=LoRa.EU868)
+    lora.nvram_restore()
 
-    # create an OTAA authentication parameters
-    app_eui = ubinascii.unhexlify(appeui)
-    app_key = ubinascii.unhexlify(appkey)
+    if not lora.has_joined() or force:
 
-    # join a network using OTAA (Over the Air Activation)
-    lora.join(activation=LoRa.OTAA, auth=(app_eui, app_key), timeout=0)
-    
+        # create an OTAA authentication parameters
+        app_eui = ubinascii.unhexlify(appeui)
+        app_key = ubinascii.unhexlify(appkey)
+
+        # join a network using OTAA (Over the Air Activation)
+        lora.join(activation=LoRa.OTAA, auth=(app_eui, app_key), timeout=0)
+        
     # wait until the module has joined the network
     while not lora.has_joined():
         time.sleep(1.0)
@@ -40,8 +43,10 @@ def connect(appeui, appkey):
 
     print('LORA/OTAA [EUI={}]: Application Join request accepted'.format(appeui))
     
-    # Save configuration:
-    #lora.nvram_save()
+    # Save LoRa State:
+    # https://forum.pycom.io/topic/1668/has-anyone-successfully-used-lora-nvram_save-and-restore/16
+    lora.nvram_save()
+    print('LORA/OTAA [EUI={}]: LoRa state saved'.format(appeui))
 
     # create a LoRa socket
     sock = socket.socket(socket.AF_LORA, socket.SOCK_RAW)
@@ -57,4 +62,4 @@ def connect(appeui, appkey):
     # (because if there's no data received it will block forever...)
     sock.setblocking(False)
 
-    return sock
+    return sock, lora

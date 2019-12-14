@@ -15,8 +15,10 @@ pycom.heartbeat(True)
 
 # Setup network & sensors
 if machine.reset_cause() == machine.DEEPSLEEP_RESET:
+    mode = 'eco'
     print('DEVICE [POWER]: Woke up from deepsleep')
 else:
+    mode = 'power'
     print('DEVICE [POWER]: Started after a reset')
 
 # Detect device:
@@ -38,12 +40,12 @@ keys = creds.get(eid)
 # Create Socket:
 sock = None
 if keys:
-    sock = lora.connect(**keys)
+    sock, _lora = lora.connect(**keys, force=False)
 print("SOCKET: {}".format(sock))
 
 # Stop to blink:
 pycom.heartbeat(False)
 
 # Create and start application:
-app = logic.Application(sock=sock)
-app.start(dryrun=True, lora_period=20, debug=True, show=True, mode='power')
+app = logic.Application(sock=sock, lora=_lora)
+app.start(dryrun=True, lora_period=20, debug=True, show=True, mode='eco')
