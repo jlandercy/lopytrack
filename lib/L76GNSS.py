@@ -8,8 +8,9 @@ import gc
 from micropython import const
 import uio
 import ure
+import utime
 
-from machine import Timer
+import machine
 
 
 class L76GNSS:
@@ -53,15 +54,16 @@ class L76GNSS:
 
         # GPS Storage:
         self._set_buffer()
+        self._RTC = None
         self._lastfixon = None
         self._lastframes = dict()
         self._satellites = dict()
-        
+
         # NMEA Regular Expression:
         self._NMEA = ure.compile(b"\$(G....)(.*)\*([0-9A-F]*)\r")
 
         # Time Management:
-        self._watchdog = Timer.Chrono()
+        self._watchdog = machine.Timer.Chrono()
 
         # L76 Initialization:
         self.reg = bytearray(1)
@@ -119,6 +121,18 @@ class L76GNSS:
             return int(s)
         except:
             return None
+
+    def _convert_time(self, s):
+        """
+        Convert Time:
+        """
+        return (int(s[0:2]), int(s[2:4]), int(s[4:6]), int(s[7:10])*1000)
+
+    def _convert_date(self, s):
+        """
+        Convert Date:
+        """
+        return (2000 + int(s[4:6]), int(s[2:4]), int(s[0:2]))
 
     def _GPGGA(self, payload):
         """
@@ -304,8 +318,25 @@ class L76GNSS:
         """
         fields = payload.split(",")[1:]
         result = {
+            "status": fields[1],
+            "lat": self.convert_coords(*fields[2:4]),
+            "lon": self.convert_coords(*fields[4:6]),
+            "time": self._convert_time(fields[0]),
+            "date": self._convert_date(fields[8]),
+            "speed": self._safe_float(fields[6]),
+            "track": self._safe_float(fields[7]),
+            "magentic": self._safe_float(fields[9]),
+            "direction": fields[10]
         }
+        if result['speed']:
+            result['speed'] *= 1.852
         return result
+
+    def _GNRMC(self, payload):
+        """
+        Synonym for GPRMC
+        """
+        return self._GPRMC(payload)
 
     def parse(self, sentence):
         """
@@ -333,6 +364,26 @@ class L76GNSS:
                 data['result'] = None
 
             return data
+
+    def _set_RTC(self, data, eps=20):
+        """
+        Set Real Time Clock based on G*RMC sentence
+        """
+        def _to_utime(rtctime):
+            return list(rtctime[0:7]) + [None, None]
+        # Date vector:
+        vec = list(data['date']) + list(data['time'])
+        # Create RTC if not exists:
+        if self._RTC is None:
+            self._RTC = machine.RTC()
+        # Time arithmetic:
+        tnow = utime.mktime(_to_utime(vec))
+        trtc = utime.mktime(_to_utime(self._RTC.now()))
+        dt = tnow - trtc
+        print(tnow, trtc, dt)
+        if abs(dt) > eps:
+            self._RTC.init(vec)
+            print("DEVICE [RTC]: Time set to {}, dt = {} [s]".format(self._RTC.now(), dt))  
 
     def read(self, timeout=1., debug=False, show=True, targets=None, mode='all', fix=False):
         """
@@ -370,7 +421,7 @@ class L76GNSS:
             for line in self._buffer:
                 i += 1                
                 # Parse Line:
-                res = self.parse(line)
+                #res = self.parse(line)
                 try:
                     res = self.parse(line)
 
@@ -384,19 +435,24 @@ class L76GNSS:
                         if self.debug or debug:
                             print("NMEA [{},{type:},{count:}]: {raw:}".format(i, count=len(line), **res))
                         
-                        if res['result'] and show:
-                            print("GPS-DATA [{}]: {}".format(i, res['result']))
-                        
                         # NMEA Sentence has correct check sum:
                         if res['integrity']:
+
+                            if res['result'] and show:
+                                print("GPS-DATA [{}]: {}".format(i, res['result']))
 
                             # Store Results:
                             self._lastframes[res['type']] = res
                             matches.update([res['type']])
 
-                            # Is it a fix?
+                            # Is time fixed?
+                            if res['type'] in ('GPRMC', 'GNRMC'):
+                                self._set_RTC(res)
+
+                            # Is position fixed?
                             if res['type'] in ('GPGGA',) and res['result']['lat'] is not None:
-                                self._lastfixon = res['result']['time']
+                                pass
+                                #self._lastfixon = res['result']['time']
 
                         else:
                             print("CHECKSUM [{},{checked:X}/{checksum:X}]: {raw:}".format(i, **res))
