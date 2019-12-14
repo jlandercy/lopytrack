@@ -105,7 +105,7 @@ class Application:
             data['acceleration'][0], data['acceleration'][1], data['acceleration'][2],
             data['roll'], data['pitch']
         )
-        vec = tuple([0. if x is None else x for x in vec])
+        vec = tuple([float('nan') if x is None else x for x in vec])
         rep['data'] = vec
         rep['payload'] = struct.pack("%uf" % len(vec), *vec)
         print("LORA-DATA [{}]: {}".format(len(rep['payload']), rep))
@@ -150,10 +150,10 @@ class Application:
             while True:
 
                 # Measure:
-                if self._measure_clock.read() >= measure_period:
+                # if self._measure_clock.read() >= measure_period:
 
-                    self.measure(debug=debug, show=show)
-                    self._measure_clock.reset()
+                #     self.measure(debug=debug, show=show)
+                #     self._measure_clock.reset()
 
                 if self._lora_clock.read() >= lora_period:
 
