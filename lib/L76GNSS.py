@@ -54,7 +54,7 @@ class L76GNSS:
 
         # GPS Storage:
         self._set_buffer()
-        self._RTC = None
+        self._RTC = machine.RTC()
         self._lastfixon = None
         self._lastframes = dict()
         self._satellites = dict()
@@ -68,6 +68,9 @@ class L76GNSS:
         # L76 Initialization:
         self.reg = bytearray(1)
         self.i2c.writeto(L76GNSS.GPS_I2CADDR, self.reg)
+
+        # NMEA Synonym registration:
+        # ...
 
     def _read(self, n=64):
         """
@@ -365,22 +368,27 @@ class L76GNSS:
 
             return data
 
+    @staticmethod
+    def _to_utime(rtctime):
+        """
+        Signature argument conversion from RTC class and utime.mktime method
+        RTC:        (year, month, day, hour, minute, second, microsecond, None)
+        utime:      (year, month, day, hour, minute, second, dayofweek, dayofyear)
+        compliance: (year, month, day, hour, minute, second, None, None)
+        Resolution is limited to second which is not a limitation for GPS of Class 1
+        """
+        return list(rtctime[0:7]) + [None, None]
+
     def _set_RTC(self, data, eps=20):
         """
         Set Real Time Clock based on G*RMC sentence
         """
-        def _to_utime(rtctime):
-            return list(rtctime[0:7]) + [None, None]
         # Date vector:
         vec = list(data['date']) + list(data['time'])
-        # Create RTC if not exists:
-        if self._RTC is None:
-            self._RTC = machine.RTC()
         # Time arithmetic:
-        tnow = utime.mktime(_to_utime(vec))
-        trtc = utime.mktime(_to_utime(self._RTC.now()))
+        tnow = utime.mktime(L76GNSS._to_utime(vec))
+        trtc = utime.mktime(L76GNSS._to_utime(self._RTC.now()))
         dt = tnow - trtc
-        print(tnow, trtc, dt)
         if abs(dt) > eps:
             self._RTC.init(vec)
             print("DEVICE [RTC]: Time set to {}, dt = {} [s]".format(self._RTC.now(), dt))  
@@ -447,12 +455,11 @@ class L76GNSS:
 
                             # Is time fixed?
                             if res['type'] in ('GPRMC', 'GNRMC'):
-                                self._set_RTC(res)
+                                self._set_RTC(res['result'])
 
                             # Is position fixed?
                             if res['type'] in ('GPGGA',) and res['result']['lat'] is not None:
-                                pass
-                                #self._lastfixon = res['result']['time']
+                                self._lastfixon = self._RTC.now()
 
                         else:
                             print("CHECKSUM [{},{checked:X}/{checksum:X}]: {raw:}".format(i, **res))
@@ -476,22 +483,32 @@ class L76GNSS:
         else:
             print("TIMEOUT [{}]: {} {} in {}, missing {}".format(self._watchdog.read(), mode, targets, matches, targets.difference(matches)))
 
-    @property
-    def lastfixon(self):
-        return self._lastfixon
-
     def start(self, debug=False, show=True):
         """
         Start GPS in deamon mode (not threadable at the moment)
         """
         self.read(timeout=None, targets=None, debug=debug, show=show)
 
+    def is_fixed(self, eps=5*60):
+        """
+        Check if position is fixed ()
+        """
+        if self._lastfixon is None:
+            return False
+        else:
+            tnow = utime.maketime(self._to_utime(self._RTC.now()))
+            tlf = utime.maketime(self._to_utime(self._lastfixon))
+            return abs(tnow - tlf) < eps
+
     def fix(self, debug=False, show=True, timeout=300.0, retry=5):
         """
-        GPS fix mode
+        Get a GPS fix in a given timeout with retries
         """
         for i in range(retry):
-            self.read(timeout=timeout, targets=['GPGGA'], fix=True, debug=debug, show=show)
+            self.read(timeout=timeout, targets=['GPGGA', 'GPRMC', 'GNRMC'], mode='all', fix=True, debug=debug, show=show)
+            print("GPS-FIX [{}/{}]: Fixed = {}".format(i+1, retry, self.is_fixed()))
+            if self.is_fixed():
+                break
             
         return self._lastframes['GPGGA']['result']
 
