@@ -4,20 +4,45 @@ function Decode(port, bytes) {
   */
   function BytesToInt16(b) {
     /*
-    Assemble Int16 from 2 bytes (big endian)
-    https://en.wikipedia.org/wiki/Integer_(computer_science)
-    https://en.wikipedia.org/wiki/Endianness
-    NB: Python has the same endianess than the processor it executes on!
+    Assemble Int16 from 2 bytes
+
+    References:
+
+      - https://en.wikipedia.org/wiki/Integer_(computer_science)
+    
+    Endianness (Byte Order):
+
+      Python and JavaScript have the same endianness than the processor it executes on.
+      Developper should write codes compliant with both scenarii, as it would break if it is executed elsewhere.
+      To control the byte order in Python, make use of struct.pack method with right type and angle bracket (< or >).
+
+        >>> import struct
+        >>> struct.pack('<h', 1)
+        b'\x01\x00'
+
+      Then transpose the correct byte order in JavaScript by shifting properly (<< or >>).
+
+        var bits = b[0]<<8 | b[1];
+
+      References:
+
+        - https://en.wikipedia.org/wiki/Endianness
+        - https://developer.mozilla.org/en-US/docs/Glossary/Endianness
+        - https://docs.python.org/3.7/library/struct.html#byte-order-size-and-alignment
+        - https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_Operators
     */
     // Assemble bytes:
-    bits = b[0]<<8 | b[1]
+    var bits = b[0]<<8 | b[1];
     return bits;
   };
   function BytesToFloat32(bytes) {
     /*
-    Assemble Float32 from 4 bytes (big endian)
-    https://en.wikipedia.org/wiki/IEEE_754
-    https://en.wikipedia.org/wiki/NaN
+    Assemble Float32 from 4 bytes
+
+    References:
+
+      - https://en.wikipedia.org/wiki/IEEE_754
+      - https://en.wikipedia.org/wiki/NaN
     */
     // Assemble bytes:
     var bits = bytes[3]<<24 | bytes[2]<<16 | bytes[1]<<8 | bytes[0];
@@ -59,7 +84,3 @@ function Decoder(bytes, port) {
   // Adapt function signature Decoder(bytes, port) to Decode(port, bytes):
   return Decode(port, bytes);
 };
-
-
-
-
