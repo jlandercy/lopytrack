@@ -73,10 +73,11 @@ class L76GNSS:
         oNMEA = [key for key in dir(self) if key.startswith("_GP")]
         for okey in oNMEA:
             for ntype in ['N', 'L']:
-                nkey = okey[:2] + ntype + okey[2:]
+                nkey = okey[:2] + ntype + okey[3:]
                 ofunc = getattr(self, okey)
                 setattr(self, nkey, lambda s: ofunc(s))
-                print("NMEA [{}]: Synonym created for {}".format(okey, nkey))
+                print("NMEA [{}]: Synonym created for {}".format(okey[1:], nkey[1:]))
+        print("NMEA: Registred sentences are {}".format([key[1:] for key in dir(self) if key.startswith("_G")]))
 
     def _read(self, n=64):
         """

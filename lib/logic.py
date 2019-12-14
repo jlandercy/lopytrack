@@ -153,7 +153,7 @@ class Application:
         print("APPLICATION: Started in mode '{}'".format(mode))
 
         # Fix GPS before continuing
-        self.gps.fix()
+        self.gps.fix(timeout=5, retry=2)
 
         # Mode Eco, measure, send data and go to deepsleep
         if mode == 'eco':
