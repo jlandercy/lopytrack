@@ -93,14 +93,16 @@ class Application:
         if self.sock is None:
             print("ERROR: Cannot send, no socket defined")
         else:
+            # https://forum.pycom.io/topic/3780/lorawan-frames-counter-does-not-work-after-deepsleep-if-socket-is-set-to-non-blocking/2
+            self.sock.setblocking(True)
             n = self.sock.send(payload)
+            self.sock.setblocking(False)
             print("SENT [{}]: {}".format(n, payload))
             ack = self.sock.recv(64)
             print("ACK [{}]: {}".format(len(ack), ack))
             # Save LoRa state:
-            utime.sleep(1.)
             self.lora.nvram_save()
-            utime.sleep(1.)
+            print("LORA [STATS]: {}".format(self.lora.stats()))
             return ack
 
     @staticmethod
@@ -121,6 +123,7 @@ class Application:
         """
         # Minimalist Payload:
         # https://gis.stackexchange.com/questions/8650/measuring-accuracy-of-latitude-and-longitude
+        # https://xkcd.com/2170/
         # len(bin(-180*10000*4))-2 # 24
         # int(-180*10000)<<24 + int(90*10000) makes the board crash because + takes precedence to <<
         payload = b''
