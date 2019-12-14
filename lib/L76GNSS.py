@@ -70,7 +70,7 @@ class L76GNSS:
         self.i2c.writeto(L76GNSS.GPS_I2CADDR, self.reg)
 
         # NMEA Synonym registration:
-        # ...
+        for 
 
     def _read(self, n=64):
         """
@@ -294,12 +294,11 @@ class L76GNSS:
         self._satellites.update({sat['PRN']: sat for sat in sats})
         return result
 
-
-    def _GLGSV(self, payload):
-        """
-        Decode NMEA GLGSV Type (Synonym for GPGSV)
-        """
-        return self._GPGSV(payload, mode='GLGSV')
+    # def _GLGSV(self, payload):
+    #     """
+    #     Decode NMEA GLGSV Type (Synonym for GPGSV)
+    #     """
+    #     return self._GPGSV(payload, mode='GLGSV')
 
     def _GPRMC(self, payload):
         """
@@ -335,11 +334,11 @@ class L76GNSS:
             result['speed'] *= 1.852
         return result
 
-    def _GNRMC(self, payload):
-        """
-        Synonym for GPRMC
-        """
-        return self._GPRMC(payload)
+    # def _GNRMC(self, payload):
+    #     """
+    #     Synonym for GPRMC
+    #     """
+    #     return self._GPRMC(payload)
 
     def parse(self, sentence):
         """
@@ -500,7 +499,7 @@ class L76GNSS:
             tlf = utime.maketime(self._to_utime(self._lastfixon))
             return abs(tnow - tlf) < eps
 
-    def fix(self, debug=False, show=True, timeout=300.0, retry=5):
+    def fix(self, debug=True, show=True, timeout=300.0, retry=5):
         """
         Get a GPS fix in a given timeout with retries
         """

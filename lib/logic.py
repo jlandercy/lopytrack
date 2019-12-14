@@ -152,7 +152,8 @@ class Application:
         assert mode in ('eco', 'power')
         print("APPLICATION: Started in mode '{}'".format(mode))
 
-        self.gps.read(timeout=30., targets=['GNRMC', 'GPRMC'], mode='any', debug=True)
+        # Fix GPS before continuing
+        self.gps.fix()
 
         # Mode Eco, measure, send data and go to deepsleep
         if mode == 'eco':
