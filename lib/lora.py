@@ -53,14 +53,16 @@ def connect(appeui, appkey, force=False):
     # make the socket blocking
     # (waits for the data to be sent and for the 2 receive windows to expire)
     sock.setblocking(True)
-
+    #sock.send(b'')
+    
     # make the socket non-blocking
     # (because if there's no data received it will block forever...)
     sock.setblocking(False)
+    #sock.recv(64)
 
     # Save LoRa State:
     # https://forum.pycom.io/topic/1668/has-anyone-successfully-used-lora-nvram_save-and-restore/16
-    #lora.nvram_save()
+    lora.nvram_save()
     print('LORA/OTAA [EUI={}]: LoRa state saved'.format(appeui))
 
     return sock, lora
