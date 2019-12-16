@@ -50,7 +50,8 @@ function Decode(port, bytes) {
     var e = bits>>>23 & 0xff;
     // Detect NaN: s111 1111 1xxx xxxx xxxx xxxx xxxx xxxx
     if(e == 255){
-      // NaN are not allowed in JSON representation, use null instead
+      // Float32 NaN reads as 5.104235503814077e+38 in Float64, therefore it produces large outliers
+      // Additionally, NaN are not allowed in JSON representation, use null instead
       return null; 
     } else {
       // Sign:
