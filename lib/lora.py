@@ -18,7 +18,7 @@ def generate_keys():
     print("LORA [EUI={}]: Application keys generated".format(appeui))
     return {"appeui": appeui, "appkey": appkey}
 
-def connect(appeui, appkey, force=False):
+def connect(appeui, appkey, force=False, max_retry=10, grace_period=2.5):
     """
     Create and connect Socket for LoRa application using OTAA mechanism
     """
@@ -38,11 +38,15 @@ def connect(appeui, appkey, force=False):
         lora.join(activation=LoRa.OTAA, auth=(app_eui, app_key), timeout=0)
         
     # wait until the module has joined the network
+    i = 0
     while not lora.has_joined():
-        time.sleep(1.0)
-        print('LORA/OTAA [EUI={}]: Application Join request pending...'.format(appeui))
-
-    print('LORA/OTAA [EUI={}]: Application Join request accepted'.format(appeui))
+        time.sleep(grace_period)
+        i += 1
+        print('LORA/OTAA [EUI={}]: Application Join request pending ({}/{})...'.format(appeui, i, max_retry))
+        if i >= max_retry:
+            break
+    else:
+        print('LORA/OTAA [EUI={}]: Application Join request accepted'.format(appeui))
 
     # create a LoRa socket
     sock = socket.socket(socket.AF_LORA, socket.SOCK_RAW)

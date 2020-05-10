@@ -138,14 +138,16 @@ class Application:
         """
         Emit a measure through LoRaWAN
         """
-        #try:
-        m = self.measure()
-        rep = self.encode(m)
-        ack = self.send(rep['payload'])
-        #except:
-        #    pass
+        try:
+            m = self.measure()
+            rep = self.encode(m)
+            ack = self.send(rep['payload'])
+            print("LORA [ack={}]: sent {} byte(s)".format(ack, len(rep["payload"])))
+        except OSError as err:
+            print("LORA: {}".format(err))
 
-    def start(self, measure_period=1, lora_period=20, mode='eco', dryrun=False, debug=False, show=True, color=0x007f00):
+    def start(self, measure_period=1, lora_period=20, gps_timeout=5*60, gps_retry=3,
+              mode='eco', dryrun=False, debug=False, show=True, color=0x007f00):
         """
         Start application, mainly sample measures, aggregate and send through LoRa
         """
@@ -154,7 +156,7 @@ class Application:
         print("APPLICATION: Started in mode '{}'".format(mode))
 
         # Fix GPS before continuing:
-        self.gps.fix(timeout=5*60, retry=3)
+        self.gps.fix(timeout=gps_timeout, retry=gps_retry)
 
         # Mode Eco, measure, send data and go to deepsleep
         if mode == 'eco':
