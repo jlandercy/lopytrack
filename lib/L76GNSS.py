@@ -100,7 +100,7 @@ class L76GNSS:
         if coord:
             coord = (float(coord) // 100) + ((float(coord) % 100) / 60)
             if head in ('S', 'W'):
-                coord *= coord
+                coord *= -1
             return coord
 
     def _set_buffer(self, line=b''):

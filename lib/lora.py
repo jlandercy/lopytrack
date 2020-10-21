@@ -18,7 +18,7 @@ def generate_keys():
     print("LORA [EUI={}]: Application keys generated".format(appeui))
     return {"appeui": appeui, "appkey": appkey}
 
-def connect(appeui, appkey, force=False, max_retry=10, grace_period=2.5):
+def connect(appeui, appkey, force=False, max_retry=20, grace_period=2.5):
     """
     Create and connect Socket for LoRa application using OTAA mechanism
     """
