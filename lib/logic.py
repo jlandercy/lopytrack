@@ -88,7 +88,7 @@ class Application:
 
     def send(self, payload):
         """
-        Send payload through socket if defined
+        Send payload through socket if defined (Uplink)
         """
         if self.sock is None:
             print("ERROR: Cannot send, no socket defined")
@@ -104,6 +104,19 @@ class Application:
             self.lora.nvram_save()
             print("LORA [STATS]: {}".format(self.lora.stats()))
             return ack
+
+    def recv(self, size=256, debug=False):
+        """
+        Receive payload through socket if defined (Downlink)
+        """
+        if self.sock is None:
+            print("ERROR: Cannot send, no socket defined")
+        else:
+            # Checkout for Downlink:
+            payload, port = self.sock.recvfrom(size)
+            if (port > 0) or debug:
+                print("RECV [{}] (port={}): {} ".format(len(payload), port, payload))
+            return payload, port
 
     @staticmethod
     def encode(data):
@@ -156,7 +169,8 @@ class Application:
         print("APPLICATION: Started in mode '{}'".format(mode))
 
         # Fix GPS before continuing:
-        self.gps.fix(timeout=gps_timeout, retry=gps_retry)
+        if not dryrun:
+            self.gps.fix(timeout=gps_timeout, retry=gps_retry)
 
         # Mode Eco, measure, send data and go to deepsleep
         if mode == 'eco':
@@ -181,12 +195,12 @@ class Application:
             # Application Loop
             while True:
 
-                # Measure:
-                # if self._measure_clock.read() >= measure_period:
+                # Get Downlink Payload if any:
+                downlink, port = self.recv(size=64, debug=debug)
+                if downlink:
+                    print("Received {} (port={})".format(downlink, port))
 
-                #     self.measure(debug=debug, show=show)
-                #     self._measure_clock.reset()
-
+                # LoRa Cycle:
                 if self._lora_clock.read() >= lora_period:
 
                     # Blink (light on):

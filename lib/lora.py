@@ -36,7 +36,12 @@ def connect(appeui, appkey, force=False, max_retry=20, grace_period=2.5):
 
         # join a network using OTAA (Over the Air Activation)
         lora.join(activation=LoRa.OTAA, auth=(app_eui, app_key), timeout=0)
-        
+    
+    # overwrite the default three channels to just sent on one channel
+    #lora.add_channel(0,frequency=868100000, dr_min=5, dr_max=5)
+    #lora.add_channel(1,frequency=868100000, dr_min=5, dr_max=5)
+    #lora.add_channel(2,frequency=868100000, dr_min=5, dr_max=5)
+
     # wait until the module has joined the network
     i = 0
     while not lora.has_joined():

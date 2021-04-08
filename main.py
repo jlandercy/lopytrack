@@ -41,7 +41,7 @@ keys = creds.get(eid)
 # Create Socket:
 sock = None
 if keys:
-    sock, _lora = lora.connect(**keys, force=False)
+    sock, _lora = lora.connect(**keys, force=True)
 print("SOCKET: {}".format(sock))
 
 # Stop to blink:
@@ -49,4 +49,4 @@ pycom.heartbeat(False)
 
 # Create and start application:
 app = logic.Application(sock=sock, lora=_lora)
-app.start(lora_period=60*20, gps_timeout=10, debug=False, show=True, mode='eco', dryrun=False)
+app.start(lora_period=60*1, gps_timeout=10, debug=False, show=True, mode='power', dryrun=False)
