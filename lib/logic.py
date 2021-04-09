@@ -102,10 +102,10 @@ class Application:
             print("ACK [{}]: {}".format(len(ack), ack))
             # Save LoRa state:
             self.lora.nvram_save()
-            print("LORA [STATS]: {}".format(self.lora.stats()))
+            #print("LORA [STATS]: {}".format(self.lora.stats()))
             return ack
 
-    def recv(self, size=256, debug=False):
+    def recv(self, size=64, debug=False):
         """
         Receive payload through socket if defined (Downlink)
         """
@@ -168,6 +168,10 @@ class Application:
         assert mode in ('eco', 'power')
         print("APPLICATION: Started in mode '{}'".format(mode))
 
+        # Magic Packet:
+        if dryrun:
+            self.send(b'\x01')
+
         # Fix GPS before continuing:
         if not dryrun:
             self.gps.fix(timeout=gps_timeout, retry=gps_retry)
@@ -196,8 +200,9 @@ class Application:
             while True:
 
                 # Get Downlink Payload if any:
-                downlink, port = self.recv(size=64, debug=debug)
+                downlink, port = self.recv(debug=debug)
                 if downlink:
+                    # Branch command logic here...
                     print("Received {} (port={})".format(downlink, port))
 
                 # LoRa Cycle:
@@ -208,6 +213,8 @@ class Application:
                     
                     if not dryrun:
                         self.emit()
+                    else:
+                        self.send(b'\x01')
 
                     self._lora_clock.reset()
 
