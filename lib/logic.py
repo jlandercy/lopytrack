@@ -91,31 +91,29 @@ class Application:
         Send payload through socket if defined (Uplink)
         """
         if self.sock is None:
-            print("ERROR: Cannot send, no socket defined")
+            print("SEND [ERROR]: Cannot send, no socket defined")
         else:
             # https://forum.pycom.io/topic/3780/lorawan-frames-counter-does-not-work-after-deepsleep-if-socket-is-set-to-non-blocking/2
-            self.sock.setblocking(True)
+            #self.sock.setblocking(True)
             n = self.sock.send(payload)
-            self.sock.setblocking(False)
+            #self.sock.setblocking(False)
             print("SENT [size={}]: {}".format(n, payload))
-            ack = self.sock.recv(64)
-            print("ACK [size={}]: {}".format(len(ack), ack))
             # Save LoRa state:
             if save:
                 self.lora.nvram_save()
-            return ack
+            return n
 
     def recv(self, size=64, debug=False, save=False):
         """
         Receive payload through socket if defined (Downlink)
         """
         if self.sock is None:
-            print("ERROR: Cannot send, no socket defined")
+            print("RECV [ERROR]: Cannot receive, no socket defined")
         else:
             # Checkout for Downlink:
             payload, port = self.sock.recvfrom(size)
             if (port > 0) or debug:
-                print("RECV [size={}] (port={}): {} ".format(len(payload), port, payload))
+                print("RECV [size={}, port={}]: {} ".format(len(payload), port, payload))
             # Save LoRa state:
             if save:
                 self.lora.nvram_save()
@@ -147,7 +145,7 @@ class Application:
         payload += struct.pack("<h", data['coords']['time'])
         rep['payload'] = payload
         """
-        print("LORA-DATA [{}]: {}".format(len(rep['payload']), rep))
+        print("ENCODE [size={}]: {}".format(len(rep['payload']), rep))
         return rep
 
     def emit(self, timeout=5.0):
@@ -157,10 +155,10 @@ class Application:
         try:
             m = self.measure()
             rep = self.encode(m)
-            ack = self.send(rep['payload'])
-            print("LORA [ack={}]: sent {} byte(s)".format(ack, len(rep["payload"])))
+            n = self.send(rep['payload'])
+            print("EMIT [size={}]: {}".format(n, rep["payload"]))
         except OSError as err:
-            print("LORA: {}".format(err))
+            print("EMIT [ERROR]: {}".format(err))
 
     def start(self, measure_period=1, lora_period=20, gps_timeout=5*60, gps_retry=3,
               mode='eco', dryrun=False, debug=False, show=True, color=0x007f00):
@@ -169,7 +167,7 @@ class Application:
         """
 
         assert mode in ('eco', 'power')
-        print("APPLICATION: Started in mode '{}'".format(mode))
+        print("APPLICATION [mode={}]: Started".format(mode))
 
         # Get a Fix from GPS:
         if not dryrun:
