@@ -170,8 +170,8 @@ class Application:
         print("APPLICATION [mode={}]: Started".format(mode))
 
         # Get a Fix from GPS:
-        if not dryrun:
-            self.gps.fix(timeout=gps_timeout, retry=gps_retry)
+        #if not dryrun:
+        #    self.gps.fix(timeout=gps_timeout, retry=gps_retry)
 
         # Mode Eco, measure, send data and go to deepsleep
         if mode == 'eco':
@@ -201,6 +201,7 @@ class Application:
                 if downlink:
                     # Branch command logic here...
                     print("Received {} (port={})".format(downlink, port))
+
 
                 # LoRa Cycle:
                 if self._lora_clock.read() >= lora_period:

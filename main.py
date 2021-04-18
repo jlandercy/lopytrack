@@ -42,7 +42,7 @@ keys = creds.get(eid)
 sock = None
 if keys:
     sock, _lora = lora.connect(**keys, force=True)
-print("SOCKET: {}".format(sock))
+print("SOCKET: created")
 
 # Stop to blink:
 pycom.heartbeat(False)
