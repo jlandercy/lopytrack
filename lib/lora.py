@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import os
-import time
+import utime
 import socket
 import binascii
 
@@ -24,15 +24,15 @@ def event_handler(lora):
         pass
     if events & LoRa.TX_PACKET_EVENT:
         pass
-    print("EVENT [{}]: {}".format(events, lora.stats()))
+    print("EVENT [type={}]: clock={} stats={}".format(events, utime.ticks_us(), lora.stats()))
 
 def connect(appeui, appkey, force=False, max_retry=20, grace_period=2.5):
     """
     Create and connect Socket for LoRa application using OTAA mechanism
     """
 
-    # Initialise LoRa in LORAWAN mode.
-    lora = LoRa(mode=LoRa.LORAWAN, region=LoRa.EU868, device_class=LoRa.CLASS_A)
+    # Initialise LoRa in LORAWAN mode:
+    lora = LoRa(mode=LoRa.LORAWAN, region=LoRa.EU868, device_class=LoRa.CLASS_C)
 
     #lora.nvram_erase()
     lora.nvram_restore()
@@ -49,7 +49,7 @@ def connect(appeui, appkey, force=False, max_retry=20, grace_period=2.5):
     # wait until the module has joined the network
     i = 0
     while not lora.has_joined():
-        time.sleep(grace_period)
+        utime.sleep(grace_period)
         i += 1
         print('LORA/OTAA [EUI={}]: Application Join request pending ({}/{})...'.format(appeui, i, max_retry))
         if i >= max_retry:
@@ -60,16 +60,23 @@ def connect(appeui, appkey, force=False, max_retry=20, grace_period=2.5):
     # Bind Event Callback:
     lora.callback(trigger=(LoRa.RX_PACKET_EVENT | LoRa.TX_PACKET_EVENT), handler=event_handler)
 
+    # Fake battery level (test):
+    lora.set_battery_level(127)
+
     # create a LoRa socket
     sock = socket.socket(socket.AF_LORA, socket.SOCK_RAW)
 
     # set the LoRaWAN data rate
     sock.setsockopt(socket.SOL_LORA, socket.SO_DR, 5)
 
+    # Confirmed uplink
+    sock.setsockopt(socket.SOL_LORA, socket.SO_CONFIRMED, False)
+
     # make the socket blocking
     # (waits for the data to be sent and for the 2 receive windows to expire)
     sock.setblocking(True)
-    #sock.send(b'')
+    sock.send(b'\x01')
+    # Send a single packet to confirm join and enable downlink capability
     
     # make the socket non-blocking
     # (because if there's no data received it will block forever...)

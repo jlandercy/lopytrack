@@ -82,11 +82,11 @@ class Application:
         data['pitch'] = self.acc.pitch()
 
         if show:
-            print("MEASURES [{}]: {}".format(data['id'], data))
+            print("MEASURES [id={}]: {}".format(data['id'], data))
 
         return data
 
-    def send(self, payload):
+    def send(self, payload, save=False):
         """
         Send payload through socket if defined (Uplink)
         """
@@ -97,15 +97,15 @@ class Application:
             self.sock.setblocking(True)
             n = self.sock.send(payload)
             self.sock.setblocking(False)
-            print("SENT [{}]: {}".format(n, payload))
+            print("SENT [size={}]: {}".format(n, payload))
             ack = self.sock.recv(64)
-            print("ACK [{}]: {}".format(len(ack), ack))
+            print("ACK [size={}]: {}".format(len(ack), ack))
             # Save LoRa state:
-            self.lora.nvram_save()
-            #print("LORA [STATS]: {}".format(self.lora.stats()))
+            if save:
+                self.lora.nvram_save()
             return ack
 
-    def recv(self, size=64, debug=False):
+    def recv(self, size=64, debug=False, save=False):
         """
         Receive payload through socket if defined (Downlink)
         """
@@ -115,7 +115,10 @@ class Application:
             # Checkout for Downlink:
             payload, port = self.sock.recvfrom(size)
             if (port > 0) or debug:
-                print("RECV [{}] (port={}): {} ".format(len(payload), port, payload))
+                print("RECV [size={}] (port={}): {} ".format(len(payload), port, payload))
+            # Save LoRa state:
+            if save:
+                self.lora.nvram_save()
             return payload, port
 
     @staticmethod
@@ -168,11 +171,7 @@ class Application:
         assert mode in ('eco', 'power')
         print("APPLICATION: Started in mode '{}'".format(mode))
 
-        # Magic Packet:
-        if dryrun:
-            self.send(b'\x01')
-
-        # Fix GPS before continuing:
+        # Get a Fix from GPS:
         if not dryrun:
             self.gps.fix(timeout=gps_timeout, retry=gps_retry)
 
@@ -187,7 +186,7 @@ class Application:
             utime.sleep(1.)
             machine.deepsleep(1000*lora_period)
 
-        # Mode power
+        # Mode Power:
         if mode == 'power':
 
             self._measure_clock.reset()
@@ -199,7 +198,7 @@ class Application:
             # Application Loop
             while True:
 
-                # Get Downlink Payload if any:
+                # Get Downlink Payload if any (eg.: TWljcm9QeXRob24=)
                 downlink, port = self.recv(debug=debug)
                 if downlink:
                     # Branch command logic here...
@@ -211,10 +210,11 @@ class Application:
                     # Blink (light on):
                     pycom.rgbled(color)
                     
-                    if not dryrun:
-                        self.emit()
+                    if dryrun:
+                        # Send a dummy packet:
+                        self.send(b'\x02')
                     else:
-                        self.send(b'\x01')
+                        self.emit()
 
                     self._lora_clock.reset()
 
