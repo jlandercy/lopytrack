@@ -202,7 +202,6 @@ class Application:
                     # Branch command logic here...
                     print("Received {} (port={})".format(downlink, port))
 
-
                 # LoRa Cycle:
                 if self._lora_clock.read() >= lora_period:
 

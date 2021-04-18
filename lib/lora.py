@@ -70,7 +70,7 @@ def connect(appeui, appkey, force=False, max_retry=20, grace_period=2.5):
     sock.setsockopt(socket.SOL_LORA, socket.SO_DR, 5)
 
     # Confirmed uplink
-    sock.setsockopt(socket.SOL_LORA, socket.SO_CONFIRMED, False)
+    sock.setsockopt(socket.SOL_LORA, socket.SO_CONFIRMED, True)
 
     # make the socket blocking
     # (waits for the data to be sent and for the 2 receive windows to expire)
