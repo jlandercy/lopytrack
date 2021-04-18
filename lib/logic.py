@@ -196,7 +196,7 @@ class Application:
             # Application Loop
             while True:
 
-                # Get Downlink Payload if any (eg.: TWljcm9QeXRob24=)
+                # Class C: Get Downlink Payload if any (eg.: TWljcm9QeXRob24=)
                 downlink, port = self.recv(debug=debug)
                 if downlink:
                     # Branch command logic here...
