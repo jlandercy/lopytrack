@@ -96,7 +96,7 @@ class Application:
             # https://forum.pycom.io/topic/3780/lorawan-frames-counter-does-not-work-after-deepsleep-if-socket-is-set-to-non-blocking/2
             #self.sock.setblocking(True)
             n = self.sock.send(payload)
-            #self.sock.setblocking(False)
+            #self.sock.setblocking(False) # Maybe linked in Downlin issue
             print("SENT [size={}]: {}".format(n, payload))
             # Save LoRa state:
             if save:
