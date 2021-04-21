@@ -82,7 +82,7 @@ class L76GNSS:
                 # This command seems to do the job, we should investigate this issue!
                 # Dynamic programming looks like it is working but may not be accurate 
                 self.__dict__[nkey] = ofunc 
-                print("GPS-NMEA [{}]: Synonym created for {}".format(okey[1:], nkey[1:]))
+                print("GPS-NMEA [sentence={}]: Synonym created for {}".format(okey[1:], nkey[1:]))
         print("GPS-NMEA: Registred sentences are {}".format([key[1:] for key in dir(self) if key.startswith("_G")]))
 
     def _read(self, n=64):

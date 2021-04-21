@@ -145,12 +145,12 @@ class Application:
         print("APP-ENCODE [size={}]: {}".format(len(rep['payload']), rep))
         return rep
 
-    def emit(self, timeout=5.0, debug=False):
+    def emit(self, timeout=15.0, debug=False):
         """
         Emit a measure through LoRaWAN
         """
         try:
-            m = self.measure(timeout=60.)
+            m = self.measure(timeout=timeout)
             rep = self.encode(m)
             n = self.send(rep['payload'])
             if debug:
@@ -174,9 +174,9 @@ class Application:
         # Mode Eco, measure, send data and go to deepsleep
         if mode == 'eco':
 
-            self.measure(debug=False)
+            #self.measure(debug=False)
             if not dryrun:
-                self.emit(timeout=15.0)
+                self.emit(timeout=30.0)
             
             # More or less safely shutdown the device:
             utime.sleep(1.)
@@ -198,7 +198,7 @@ class Application:
                 downlink, port = self.recv(debug=debug)
                 if downlink:
                     # Branch command logic here...
-                    print("Received {} (port={})".format(downlink, port))
+                    pass
 
                 # LoRa Cycle:
                 if self._lora_clock.read() >= lora_period:
@@ -207,13 +207,12 @@ class Application:
                     pycom.rgbled(color)
                     
                     if dryrun:
-                        # Send a dummy packet:
+                        # Send a heavy dummy packet:
                         self.send(b'\x02'*56)
                     else:
-                        self.emit()
+                        self.emit(timeout=90.)
 
                     self._lora_clock.reset()
 
                     # Blink (light off):
                     pycom.rgbled(0x000000)
-

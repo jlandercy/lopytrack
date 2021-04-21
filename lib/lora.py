@@ -39,7 +39,7 @@ def connect(appeui, appkey, force=False, max_retry=20, grace_period=2.5):
 
     if not lora.has_joined() or force:
 
-        # create an OTAA authentication parameters
+        # create an OTAA authentication parameters:
         app_eui = ubinascii.unhexlify(appeui)
         app_key = ubinascii.unhexlify(appkey)
 
