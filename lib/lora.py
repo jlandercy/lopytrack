@@ -15,7 +15,7 @@ def generate_keys():
     """
     appeui = ubinascii.hexlify(os.urandom(8)).decode().upper()
     appkey = ubinascii.hexlify(os.urandom(16)).decode().upper()
-    print("LORA [EUI={}]: Application keys generated".format(appeui))
+    print("LORA-KEYS [EUI={}]: Application keys generated".format(appeui))
     return {"appeui": appeui, "appkey": appkey}
 
 def event_handler(lora):
@@ -24,7 +24,7 @@ def event_handler(lora):
         pass
     if events & LoRa.TX_PACKET_EVENT:
         pass
-    print("LORA/EVENT [type={}]: clock={} stats={}".format(events, utime.ticks_us(), lora.stats()))
+    print("LORA-EVENT [type={}]: clock={} stats={}".format(events, utime.ticks_us(), lora.stats()))
 
 def connect(appeui, appkey, force=False, max_retry=20, grace_period=2.5):
     """
@@ -51,11 +51,11 @@ def connect(appeui, appkey, force=False, max_retry=20, grace_period=2.5):
     while not lora.has_joined():
         utime.sleep(grace_period)
         i += 1
-        print('LORA/OTAA [EUI={}]: Application Join request pending ({}/{})...'.format(appeui, i, max_retry))
+        print('LORA-OTAA [EUI={}]: Application Join request pending ({}/{})...'.format(appeui, i, max_retry))
         if i >= max_retry:
             break
     else:
-        print('LORA/OTAA [EUI={}]: Application Join request accepted'.format(appeui))
+        print('LORA-OTAA [EUI={}]: Application Join request accepted'.format(appeui))
 
     # Bind Event Callback:
     lora.callback(trigger=(LoRa.RX_PACKET_EVENT | LoRa.TX_PACKET_EVENT), handler=event_handler)
@@ -86,6 +86,6 @@ def connect(appeui, appkey, force=False, max_retry=20, grace_period=2.5):
     # Save LoRa State:
     # https://forum.pycom.io/topic/1668/has-anyone-successfully-used-lora-nvram_save-and-restore/16
     lora.nvram_save()
-    print('LORA/OTAA [EUI={}]: LoRa state saved'.format(appeui))
+    print('LORA-OTAA [EUI={}]: LoRa state saved'.format(appeui))
 
     return sock, lora

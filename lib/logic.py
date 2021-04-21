@@ -39,7 +39,7 @@ class Application:
         self._id = 0
         self._last = None
 
-        print("APPLICATION: Initialiazed")
+        print("APP: Initialiazed")
 
     @property
     def board(self):
@@ -61,7 +61,7 @@ class Application:
     def lora(self):
         return self._lora
 
-    def measure(self, timeout=5.0, debug=False, show=False):
+    def measure(self, timeout=5.0, debug=False):
         """
         Measure available data on the board.
         """
@@ -81,8 +81,8 @@ class Application:
         data['roll'] = self.acc.roll()
         data['pitch'] = self.acc.pitch()
 
-        if show:
-            print("MEASURES [id={}]: {}".format(data['id'], data))
+        if debug:
+            print("APP-MEASURE [id={}]: {}".format(data['id'], data))
 
         return data
 
@@ -91,13 +91,13 @@ class Application:
         Send payload through socket if defined (Uplink)
         """
         if self.sock is None:
-            print("SEND [ERROR]: Cannot send, no socket defined")
+            print("APP-SEND ERROR: Cannot send, no socket defined")
         else:
             # https://forum.pycom.io/topic/3780/lorawan-frames-counter-does-not-work-after-deepsleep-if-socket-is-set-to-non-blocking/2
             #self.sock.setblocking(True)
             n = self.sock.send(payload)
             #self.sock.setblocking(False) # Maybe linked in Downlin issue
-            print("SENT [size={}]: {}".format(n, payload))
+            print("APP-SENT [size={}]: {}".format(n, payload))
             # Save LoRa state:
             if save:
                 self.lora.nvram_save()
@@ -108,12 +108,12 @@ class Application:
         Receive payload through socket if defined (Downlink)
         """
         if self.sock is None:
-            print("RECV [ERROR]: Cannot receive, no socket defined")
+            print("APP-RECV ERROR: Cannot receive, no socket defined")
         else:
             # Checkout for Downlink:
             payload, port = self.sock.recvfrom(size)
             if (port > 0) or debug:
-                print("RECV [size={}, port={}]: {} ".format(len(payload), port, payload))
+                print("APP-RECV [size={}, port={}]: {} ".format(len(payload), port, payload))
             # Save LoRa state:
             if save:
                 self.lora.nvram_save()
@@ -131,7 +131,7 @@ class Application:
         d = ((t[0]*60+t[1])*60+t[2])
         lon = round((data['coords']['lon'] or 1e3)*1e6)
         lat = round((data['coords']['lat'] or 1e3)*1e6)
-        h = round((data['coords']['height'] or -1000))
+        h = round((data['coords']['height'] or 0))
         dop = round((data["coords"]["hdop"] or 0)*10)
         # Encode Metrics:
         payload = b''
@@ -142,10 +142,10 @@ class Application:
         payload += struct.pack("<h", h)
         payload += struct.pack("<h", dop)
         rep['payload'] = payload
-        print("ENCODE [size={}]: {}".format(len(rep['payload']), rep))
+        print("APP-ENCODE [size={}]: {}".format(len(rep['payload']), rep))
         return rep
 
-    def emit(self, timeout=5.0):
+    def emit(self, timeout=5.0, debug=False):
         """
         Emit a measure through LoRaWAN
         """
@@ -153,18 +153,19 @@ class Application:
             m = self.measure(timeout=60.)
             rep = self.encode(m)
             n = self.send(rep['payload'])
-            print("EMIT [size={}]: {}".format(n, rep["payload"]))
+            if debug:
+                print("APP-EMIT [size={}]: {}".format(n, rep))
         except OSError as err:
-            print("EMIT [ERROR]: {}".format(err))
+            print("APP-EMIT ERROR: {}".format(err))
 
-    def start(self, measure_period=1, lora_period=20, gps_timeout=5*60, gps_retry=3,
-              mode='eco', dryrun=False, debug=False, show=True, color=0x007f00):
+    def start(self, measure_period=1, lora_period=20, gps_timeout=5*60, gps_retry=5,
+              mode='eco', dryrun=False, debug=False, color=0x007f00):
         """
         Start application, mainly sample measures, aggregate and send through LoRa
         """
 
         assert mode in ('eco', 'power')
-        print("APPLICATION [mode={}]: Started".format(mode))
+        print("APP [mode={}]: Started".format(mode))
 
         # Get a Fix from GPS:
         if not dryrun:
@@ -173,9 +174,9 @@ class Application:
         # Mode Eco, measure, send data and go to deepsleep
         if mode == 'eco':
 
-            #self.measure(debug=False, show=False)
+            self.measure(debug=False)
             if not dryrun:
-                self.emit(timeout=5.0)
+                self.emit(timeout=15.0)
             
             # More or less safely shutdown the device:
             utime.sleep(1.)

@@ -16,15 +16,14 @@ pycom.heartbeat(True)
 # Setup network & sensors
 if machine.reset_cause() == machine.DEEPSLEEP_RESET:
     mode = 'eco'
-    print('DEVICE [POWER]: Woke up from deepsleep')
+    print('DEVICE-BOOT: Woke up from deepsleep')
 else:
     mode = 'power'
-    print('DEVICE [POWER]: Started after a reset')
+    print('DEVICE-BOOT: Started after a reset')
 
 # Detect device:
 eid = binascii.hexlify(network.LoRa().mac()).decode().upper()
-print("DEVICE [EUI={}]: EUI detected".format(eid))
-
+print("LORA-KEYS [EUI={}]: EUI detected".format(eid))
 
 # Node/Application Key:
 target = './data/lora.json'
@@ -33,7 +32,7 @@ try:
         creds = json.load(fh)
 except OSError:
     creds = {eid: lora.generate_keys()}
-    print("CREDENTIALS: {}".format(json.dumps(creds)))
+    print("LORA-KEYS: {}".format(json.dumps(creds)))
     with open(target, 'w') as fh:
         json.dump(creds, fh)
 keys = creds.get(eid)
@@ -41,12 +40,11 @@ keys = creds.get(eid)
 # Create Socket:
 sock = None
 if keys:
-    sock, _lora = lora.connect(**keys, force=True)
-print("SOCKET: created")
+    sock, _lora = lora.connect(**keys, force=False)
 
 # Stop to blink:
 pycom.heartbeat(False)
 
 # Create and start application:
 app = logic.Application(sock=sock, lora=_lora)
-app.start(lora_period=60*1, gps_timeout=10, debug=False, show=False, mode='power', dryrun=False)
+app.start(lora_period=60*1, gps_timeout=10, debug=False, mode='power', dryrun=False)

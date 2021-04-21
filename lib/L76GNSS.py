@@ -82,8 +82,8 @@ class L76GNSS:
                 # This command seems to do the job, we should investigate this issue!
                 # Dynamic programming looks like it is working but may not be accurate 
                 self.__dict__[nkey] = ofunc 
-                print("NMEA [{}]: Synonym created for {}".format(okey[1:], nkey[1:]))
-        print("NMEA: Registred sentences are {}".format([key[1:] for key in dir(self) if key.startswith("_G")]))
+                print("GPS-NMEA [{}]: Synonym created for {}".format(okey[1:], nkey[1:]))
+        print("GPS-NMEA: Registred sentences are {}".format([key[1:] for key in dir(self) if key.startswith("_G")]))
 
     def _read(self, n=64):
         """
@@ -397,7 +397,7 @@ class L76GNSS:
         dt = tnow - trtc
         if abs(dt) > eps:
             self._RTC.init(vec)
-            print("GPS-RTC [dt={}s]: Time set to {}".format(dt, self._RTC.now()))  
+            print("DEVICE-RTC [dt={}s]: Time sync w/ GPS {}".format(dt, self._RTC.now()))  
 
     def read(self, timeout=1., debug=False, targets=None, mode='all', fix=False):
         """
@@ -427,7 +427,7 @@ class L76GNSS:
             if s:
                 self._buffer.write(s)
                 if self.debug or debug:
-                    print("STREAM [{:.6f},{}/{}]: {}".format(self._watchdog.read(), len(s), len(self._buffer.getvalue()), s))
+                    print("GPS-STREAM [{:.6f},{}/{}]: {}".format(self._watchdog.read(), len(s), len(self._buffer.getvalue()), s))
 
             # Iterate buffered lines:
             line = b''
@@ -440,14 +440,14 @@ class L76GNSS:
                     res = self.parse(line)
 
                 except Exception as err:
-                    print("ERROR [{}]: {}({})".format(i, err, line))
+                    print("GPS-STREAM ERROR [{}]: {}({})".format(i, err, line))
 
                 else:
                     # Line is a valid NMEA sentence:
                     if res:
 
                         if self.debug or debug:
-                            print("NMEA [{},{type:},{count:}]: {raw:}".format(i, count=len(line), **res))
+                            print("GPS-NMEA [{},{type:},{count:}]: {raw:}".format(i, count=len(line), **res))
                         
                         # NMEA Sentence has correct check sum:
                         if res['integrity']:
@@ -468,7 +468,7 @@ class L76GNSS:
                                 self._lastfixon = self._RTC.now()
 
                         else:
-                            print("CHECKSUM [{},{checked:X}/{checksum:X}]: {raw:}".format(i, **res))
+                            print("GPS-NMEA CHECKSUM [{},{checked:X}/{checksum:X}]: {raw:}".format(i, **res))
 
             # Reset buffer with trailing data:
             self._set_buffer(line)
