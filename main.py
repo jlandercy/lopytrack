@@ -49,4 +49,4 @@ pycom.heartbeat(False)
 
 # Create and start application:
 app = logic.Application(sock=sock, lora=_lora)
-app.start(lora_period=60*1, gps_timeout=10, debug=False, show=True, mode='power', dryrun=True)
+app.start(lora_period=60*1, gps_timeout=10, debug=False, show=False, mode='power', dryrun=False)

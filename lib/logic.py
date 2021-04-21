@@ -125,26 +125,23 @@ class Application:
         Encode data into LoRa physical payload:
         """
         rep = data.copy()
-        # Test payload not compliant with ISM allowed duty cycle:
+        # Convert Metrics:
         t = data['coords']['time']
-        vec = (
-            float((t[0]*60+t[1])*60+t[2]), data['coords']['lat'], data['coords']['lon'], data['coords']['height'], data['coords']['hdop'],
-            data['acceleration'][0], data['acceleration'][1], data['acceleration'][2],
-            data['roll'], data['pitch']
-        )
-        vec = tuple([float('nan') if x is None else x for x in vec])
-        rep['data'] = vec
-        rep['payload'] = struct.pack("%uf" % len(vec), *vec)
-        """
-        # Minimalist Payload:
-        # https://gis.stackexchange.com/questions/8650/measuring-accuracy-of-latitude-and-longitude
-        # https://xkcd.com/2170/
-        # len(bin(-180*10000*4))-2 # 24
-        # int(-180*10000)<<24 + int(90*10000) makes the board crash because + takes precedence to <<
+        s = int(data["coords"]["lat"] is None) | (data['coords']['fix'] << 1)
+        d = ((t[0]*60+t[1])*60+t[2])
+        lon = round((data['coords']['lon'] or 1e3)*1e6)
+        lat = round((data['coords']['lat'] or 1e3)*1e6)
+        h = round((data['coords']['height'] or -1000))
+        dop = round((data["coords"]["hdop"] or 0)*10)
+        # Encode Metrics:
         payload = b''
-        payload += struct.pack("<h", data['coords']['time'])
+        payload += struct.pack("<b", s)
+        payload += struct.pack("<I", d)
+        payload += struct.pack("<I", lon)
+        payload += struct.pack("<I", lat)
+        payload += struct.pack("<h", h)
+        payload += struct.pack("<h", dop)
         rep['payload'] = payload
-        """
         print("ENCODE [size={}]: {}".format(len(rep['payload']), rep))
         return rep
 
@@ -153,7 +150,7 @@ class Application:
         Emit a measure through LoRaWAN
         """
         try:
-            m = self.measure()
+            m = self.measure(timeout=60.)
             rep = self.encode(m)
             n = self.send(rep['payload'])
             print("EMIT [size={}]: {}".format(n, rep["payload"]))
@@ -170,8 +167,8 @@ class Application:
         print("APPLICATION [mode={}]: Started".format(mode))
 
         # Get a Fix from GPS:
-        #if not dryrun:
-        #    self.gps.fix(timeout=gps_timeout, retry=gps_retry)
+        if not dryrun:
+            self.gps.fix(timeout=gps_timeout, retry=gps_retry)
 
         # Mode Eco, measure, send data and go to deepsleep
         if mode == 'eco':
@@ -210,7 +207,7 @@ class Application:
                     
                     if dryrun:
                         # Send a dummy packet:
-                        self.send(b'\x02')
+                        self.send(b'\x02'*56)
                     else:
                         self.emit()
 

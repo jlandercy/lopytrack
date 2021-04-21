@@ -397,9 +397,9 @@ class L76GNSS:
         dt = tnow - trtc
         if abs(dt) > eps:
             self._RTC.init(vec)
-            print("DEVICE [RTC]: Time set to {}, dt = {} [s]".format(self._RTC.now(), dt))  
+            print("GPS-RTC [dt={}s]: Time set to {}".format(dt, self._RTC.now()))  
 
-    def read(self, timeout=1., debug=False, show=True, targets=None, mode='all', fix=False):
+    def read(self, timeout=1., debug=False, targets=None, mode='all', fix=False):
         """
         Read data from L76 chipset and parse NMEA protocol
         """
@@ -452,7 +452,7 @@ class L76GNSS:
                         # NMEA Sentence has correct check sum:
                         if res['integrity']:
 
-                            if res['result'] and show:
+                            if (self.debug or debug) and res['result']:
                                 print("GPS-DATA [{}]: {}".format(i, res['result']))
 
                             # Store Results:
@@ -487,13 +487,13 @@ class L76GNSS:
         
         # Timeout reason:
         else:
-            print("TIMEOUT [{}]: {} {} in {}, missing {}".format(self._watchdog.read(), mode, targets, matches, targets.difference(matches)))
+            print("GPS-FIX [timeout={}s]: {} {} in {}, missing {}".format(self._watchdog.read(), mode, targets, matches, targets.difference(matches)))
 
-    def start(self, debug=False, show=True):
+    def start(self, debug=False):
         """
         Start GPS in deamon mode (not threadable at the moment)
         """
-        self.read(timeout=None, targets=None, debug=debug, show=show)
+        self.read(timeout=None, targets=None, debug=debug)
 
     def is_fixed(self, eps=5*60):
         """
@@ -506,13 +506,13 @@ class L76GNSS:
             tlf = utime.mktime(self._to_utime(self._lastfixon))
             return abs(tnow - tlf) < eps
 
-    def fix(self, debug=False, show=True, timeout=300.0, retry=5):
+    def fix(self, debug=False, timeout=300.0, retry=5):
         """
         Get a GPS fix in a given timeout with retries
         """
         for i in range(retry):
-            self.read(timeout=timeout, targets=['GPGGA', 'GPRMC', 'GNRMC'], mode='all', fix=True, debug=debug, show=show)
-            print("GPS-FIX [{}/{}]: Fixed = {}".format(i+1, retry, self.is_fixed()))
+            self.read(timeout=timeout, targets=['GPGGA', 'GPRMC', 'GNRMC'], mode='all', fix=True, debug=debug)
+            print("GPS-FIX [try={}/{}]: Fixed = {}".format(i+1, retry, self.is_fixed()))
             if self.is_fixed():
                 break
             
