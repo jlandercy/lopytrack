@@ -41,10 +41,11 @@ keys = creds.get(eid)
 sock = None
 if keys:
     sock, _lora = lora.connect(**keys, force=False)
+    print("LORA-SOCKET: Created")
 
 # Stop to blink:
 pycom.heartbeat(False)
 
 # Create and start application:
 app = logic.Application(sock=sock, lora=_lora)
-app.start(lora_period=60*1, gps_timeout=10, debug=False, mode='power', dryrun=False)
+app.start(lora_period=60*5, gps_timeout=10., debug=False, mode='power', dryrun=False)

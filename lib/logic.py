@@ -122,7 +122,7 @@ class Application:
     @staticmethod
     def encode(data):
         """
-        Encode data into LoRa physical payload:
+        Encode data into application payload:
         """
         rep = data.copy()
         # Convert Metrics:
@@ -147,7 +147,7 @@ class Application:
 
     def emit(self, timeout=15.0, debug=False):
         """
-        Emit a measure through LoRaWAN
+        Emit a measure through socket
         """
         try:
             m = self.measure(timeout=timeout)
@@ -161,7 +161,7 @@ class Application:
     def start(self, measure_period=1, lora_period=20, gps_timeout=5*60, gps_retry=5,
               mode='eco', dryrun=False, debug=False, color=0x007f00):
         """
-        Start application, mainly sample measures, aggregate and send through LoRa
+        Start application
         """
 
         assert mode in ('eco', 'power')

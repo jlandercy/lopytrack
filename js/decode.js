@@ -1,3 +1,4 @@
+/* ChirpStack Application payload decoder */
 function Decode(port, bytes) {
   return {
     "error": (bytes[0] & 0x01),
@@ -10,10 +11,7 @@ function Decode(port, bytes) {
   };
 };
 
+/* TTN Application payload decoder */
 function Decoder(bytes, port) {
-  /*
-  Decode function for The Things Network (TTN)
-  */
-  // Adapt function signature Decoder(bytes, port) to Decode(port, bytes):
   return Decode(port, bytes);
 };
